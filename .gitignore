@@ -1,0 +1,6 @@
+*.o
+*.d
+*.pyc
+*.dat
+main
+.session.vim
