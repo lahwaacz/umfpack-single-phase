@@ -81,46 +81,6 @@ void test_mesh(void)
     }
 }
 
-void test_matrix_load( void )
-{
-    string fname("test-matrix.dat");
-    unsigned rows = 4;
-    unsigned cols = 3;
-
-    DenseMatrix m( rows, cols );
-    m( 0, 0 ) = 1.1;
-    m( 0, 1 ) = 2.2;
-    m( 0, 2 ) = 3.3;
-    m( 3, 0 ) = 4.4;
-    m.save( fname );
-    DenseMatrix b( rows, cols );
-    b.load( fname );
-    for( unsigned i = 0; i < rows; i++ ) {
-        for( unsigned j = 0; j < cols; j++ ) {
-            cout << b( i, j ) << " ";
-        }
-        cout << endl;
-    }
-}
-
-void test_vector_load( void )
-{
-    string fname("test-vector.dat");
-    int rows = 4;
-
-    Vector v( rows );
-    v[ 0 ] = 1.1;
-    v[ 1 ] = 2.2;
-    v[ 2 ] = 3.3;
-    v[ 3 ] = 4.4;
-    v.save( fname );
-    Vector b( rows );
-    b.load( fname );
-    for( int i = 0; i < rows; i++ ) {
-        cout << b[ i ] << endl;
-    }
-}
-
 void test_sparse_matrix( void )
 {
     string fname("test-sparse-matrix.dat");
@@ -171,8 +131,8 @@ void test_umfpack_solve( void )
 
 int main( int argc, char** argv )
 {
-    test_umfpack_solve();
-//    Solver s;
-//    s.init( 2, 1, 10, 20 );
+    Solver s;
+    s.init();
+    s.run();
 }
 

@@ -29,3 +29,7 @@ Matrix::Matrix( IndexType order )
         throw BadIndex("Matrix constructor called with 0 size");
 }
 
+Matrix::~Matrix( void )
+{
+}
+

@@ -67,6 +67,11 @@ SparseMatrix::SparseMatrix( IndexType order )
     _init();
 }
 
+SparseMatrix::~SparseMatrix( void )
+{
+    umfpack_di_free_numeric( &Numeric );
+}
+
 
 /**
  * Nastaví prvek matice na zadanou hodnotu.
@@ -246,6 +251,25 @@ bool SparseMatrix::load( const string & filename )
     return true;
 }
 
+bool SparseMatrix::factorize( void )
+{
+    void* Symbolic = nullptr;
+    
+    // symbolic reordering of the sparse matrix
+    umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
+
+    // factorization of Ap,Ai,Ax
+    int status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
+    umfpack_di_free_symbolic( &Symbolic );
+
+    if( status == UMFPACK_OK )
+        return true;
+    else {
+        umfpack_di_report_status( nullptr, status );
+        return false;
+    }
+}
+
 // solve linear system  A*x=rhs using UMFPACK
 bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
 {
@@ -254,25 +278,25 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     if( x.rows() != _rows || rhs.rows() != _rows )
         throw string("passed vectors don't match matrix dimensions");
 
-    void* Symbolic = nullptr;
-    void* Numeric = nullptr;
+    // factorize
+    if( Numeric == nullptr ) {
+        bool status = factorize();
+        if( status == false )
+            return false;
+    }
 
     // umfpack expects Compressed Sparse Column format, we have Compressed Sparse Row
     // so we need to solve  A^T * x = rhs
     int sys = UMFPACK_Aat;
 
-    // symbolic reordering of the sparse matrix
-    umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
+    // solve with specified right-hand-side
+    int status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, nullptr, nullptr );
 
-    // factorization of Ap,Ai,Ax
-    umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
-    umfpack_di_free_symbolic( &Symbolic );
-
-    // solve with various rhs
-    umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, nullptr, nullptr );
-    umfpack_di_free_numeric( &Numeric );
-
-    // TODO: check umfpack errors
-    return true;
+    if( status == UMFPACK_OK )
+        return true;
+    else {
+        umfpack_di_report_status( nullptr, status );
+        return false;
+    }
 }
 

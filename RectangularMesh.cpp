@@ -3,7 +3,7 @@
 // cell numbering: by rows, left to right
 // edge numbering: by rows, first horizontal and then vertical
 
-RectangularMesh::RectangularMesh( int area_width, int area_height, int rows, int columns )
+RectangularMesh::RectangularMesh( double area_width, double area_height, int rows, int columns )
     : _rows(rows), _cols(columns)
 {
     _delta_x = area_width / columns;
@@ -46,9 +46,9 @@ bool RectangularMesh::is_outer_edge( int edge ) const
  * int cell - cell index
  * int edgeOrder - for which edge the index should be returned:
  *          0 - top
- *          1 - right
- *          2 - bottom
- *          3 - left
+ *          1 - bottom
+ *          2 - left
+ *          3 - right
  */
 int RectangularMesh::edge_for_cell( int cell, int edgeOrder ) const
 {
@@ -58,11 +58,11 @@ int RectangularMesh::edge_for_cell( int cell, int edgeOrder ) const
 
     // increment for right/bottom edge
     if( edgeOrder == 1 )
-        col++;
-    if( edgeOrder == 2 )
         row++;
+    if( edgeOrder == 3 )
+        col++;
 
-    if( edgeOrder == 0 || edgeOrder == 2 )
+    if( edgeOrder < 2 )
         // top/bottom: index in (_rows+1) by _cols row-major matrix
         return row * _cols + col;
     // left/right: index in _rows by (_cols+1) row-major matrix, plus number of horizontal edges
@@ -111,6 +111,23 @@ int RectangularMesh::cell_for_edge( int edge, int cellOrder ) const
     return row * _cols + col;
 }
 
+/*
+ * For `edge` adjacent to `cell`, return:
+ *      0 - top edge
+ *      1 - bottom edge
+ *      2 - left edge
+ *      3 - right edge
+ *      -1 - edge not adjacent to cell
+ */
+int RectangularMesh::get_edge_order( int cell, int edge ) const
+{
+    for( int i = 0; i < 4; i++ ) {
+        if( edge_for_cell( cell, i ) == edge )
+            return i;
+    }
+    return -1;
+}
+
 double RectangularMesh::measure_cell( int cell ) const
 {
     return _delta_x * _delta_y;
@@ -123,5 +140,27 @@ double RectangularMesh::measure_edge( int edge ) const
         return _delta_x;
     // vertical edge
     return _delta_y;
+}
+
+bool RectangularMesh::is_horizontal_edge( int edge ) const
+{
+    return edge < (_rows + 1) * _cols;
+}
+
+bool RectangularMesh::is_vertical_edge( int edge ) const
+{
+    return not is_horizontal_edge( edge );
+}
+
+bool RectangularMesh::is_neumann_boundary( int edge ) const
+{
+    return is_outer_edge( edge ) && edge >= _cols;
+//    return is_outer_edge( edge );
+}
+
+bool RectangularMesh::is_dirichlet_boundary( int edge ) const
+{
+    return is_outer_edge( edge ) && edge < _cols;
+//    return false;
 }
 

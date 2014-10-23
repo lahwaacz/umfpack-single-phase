@@ -7,8 +7,6 @@
 
 #include <string>
 
-using namespace std;
-
 typedef double RealType;
 typedef int IndexType;
 
@@ -25,8 +23,9 @@ protected:
     virtual void _init( void ) = 0;
 
 public:
-    Matrix(IndexType rows, IndexType cols);
-    Matrix(IndexType order);
+    Matrix( IndexType rows, IndexType cols );
+    Matrix( IndexType order );
+    virtual ~Matrix( void );
 
     // accessors to matrix elements
     virtual bool set( IndexType row, IndexType col, RealType data ) = 0;
