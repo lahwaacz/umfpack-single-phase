@@ -19,8 +19,7 @@ using namespace std;
 void
 SparseMatrix::_init( void )
 {
-    for( IndexType i = 0; i < _rows; i++ )
-        _row_indexes.push_back(0);
+    _row_indexes.reserve( _rows + 1 );
     _row_indexes.push_back(0);  // počet nenulových prvků (NNZ)
 }
 
@@ -89,7 +88,7 @@ SparseMatrix::set( IndexType row, IndexType column, RealType data )
 
     RealType current_value = get(row, column);
 
-    // přepsání existujícího
+    // overwrite existing element
     if (data != 0 and current_value != 0) {
         // hledat index prvku v _column_indexes
         IndexType index = _row_indexes[row];
@@ -97,24 +96,36 @@ SparseMatrix::set( IndexType row, IndexType column, RealType data )
             index++;
         _values[index] = data;
     }
-    // vložení prvku
+    // insert new element
     else if (data != 0 and current_value == 0) {
-        // hledat index následujícího nenulového prvku v _column_indexes
+        // ensure that _row_indexes has size of the index of the last non-zero row + 1
+        while( (unsigned) row + 1 >= _row_indexes.size() )
+            _row_indexes.push_back( _row_indexes.back() );
+
+        // for next non-zero element find its index in _column_indexes
         IndexType index = _row_indexes[row];
         while (index < _row_indexes[row+1] and _column_indexes[index] <= column)
             index++;
+
+        // insert before the next non-zero element
         _insert(index, column, data);
-        for( IndexType i = row+1; i <= _rows; i++ )    // fix row indexes
+
+        // fix row indexes
+        for( unsigned i = row+1; i < _row_indexes.size(); i++ )
             _row_indexes[i]++;
     }
-    // mazání prvku
+    // remove element (reset to zero)
     else if (data == 0 and current_value != 0) {
-        // hledat index prvku v _column_indexes
+        // find element index in _column_indexes
         IndexType index = _row_indexes[row];
         while (index < _row_indexes[row+1] and _column_indexes[index] < column)
             index++;
+
+        // reset element to zero
         _delete(index);
-        for( IndexType i = row+1; i <= _rows; i++ )    // fix row indexes
+
+        // fix row indexes
+        for( unsigned i = row+1; i < _row_indexes.size(); i++ )
             _row_indexes[i]--;
     }
 
@@ -135,14 +146,21 @@ SparseMatrix::get( IndexType row, IndexType column ) const
     if( row >= _rows or column >= _cols )
         throw string("Indexy mimo rozměry matice");
 
-    // hledat index prvku v _column_indexes
+    // check if row has any non-zero element
+    if( (unsigned) row + 1 >= _row_indexes.size() )
+        return 0;
+
+    // find element index in _column_indexes
     IndexType index = _row_indexes[row];
     while( index < _row_indexes[row+1] and _column_indexes[index] < column )
         index++;
+
+    // check if element was found
     if( index < _row_indexes[row+1] and _column_indexes[index] == column )
         return _values[index];
-    else
-        return 0;
+
+    // default value
+    return 0;
 }
 
 /**
@@ -156,26 +174,30 @@ bool SparseMatrix::save( const string & filename ) const
         return false;
     
     // write values
-    for (vector< RealType >::const_iterator iter = _values.begin();
+    for( vector< RealType >::const_iterator iter = _values.begin();
             iter != _values.end();
-            ++iter) {
+            ++iter ) {
         outfile << *iter << " ";
     }
     outfile << endl;
 
     // write column indexes
-    for (vector< IndexType >::const_iterator iter = _column_indexes.begin();
+    for( vector< IndexType >::const_iterator iter = _column_indexes.begin();
             iter != _column_indexes.end();
-            ++iter) {
+            ++iter ) {
         outfile << *iter << " ";
     }
     outfile << endl;
 
     // write row indexes
-    for (vector<IndexType>::const_iterator iter = _row_indexes.begin();
+    for( vector<IndexType>::const_iterator iter = _row_indexes.begin();
             iter != _row_indexes.end();
-            ++iter) {
+            ++iter ) {
         outfile << *iter << " ";
+    }
+    // write "non-allocated" row indexes to satisfy CSR format
+    for( IndexType i = _row_indexes.size(); i <= _rows; i++ ) {
+        outfile << _row_indexes.back() << " ";
     }
     outfile << endl;
 
@@ -215,7 +237,7 @@ bool SparseMatrix::load( const string & filename )
             tmp_vect_rows.push_back(tmp);
         }
     }
-    if( _row_indexes.size() != tmp_vect_rows.size() or tmp_vect_rows.back() > _rows * _cols)
+    if( _row_indexes.capacity() != tmp_vect_rows.size() or tmp_vect_rows.back() > _rows * _cols)
         return false;
 
     // parse column indexes
@@ -258,7 +280,7 @@ bool SparseMatrix::factorize( void )
     // symbolic reordering of the sparse matrix
     umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
 
-    // factorization of Ap,Ai,Ax
+    // factorization
     int status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
     umfpack_di_free_symbolic( &Symbolic );
 
