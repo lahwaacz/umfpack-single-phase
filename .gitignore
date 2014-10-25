@@ -1,6 +1,11 @@
 *.o
 *.d
 *.pyc
-*.dat
 main
 .session.vim
+
+# saved matrix/vector data
+*.dat
+
+# generated images
+*.png
