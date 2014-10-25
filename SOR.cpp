@@ -22,8 +22,8 @@ bool SORMethod ( const DenseMatrix & A,
         {
             RealType s = 0.0;
             for ( IndexType j = 0; j < n; j++ )
-                 s = s + A( i, j ) * x[ j ];
-            x[ i ] += omega * ( b[ i ] - s ) / A( i, i );
+                 s = s + A( i, j ) * x.at( j );
+            x.at( i ) += omega * ( b.at( i ) - s ) / A( i, i );
         }
 
         // update residue
@@ -32,8 +32,8 @@ bool SORMethod ( const DenseMatrix & A,
         {
              RealType Ax_i = 0.0;
              for ( IndexType j = 0; j < n; j++ )
-                 Ax_i = Ax_i + A( i, j ) * x[ j ];
-             r = r + ( Ax_i - b[ i ] ) * ( Ax_i - b[ i ] );
+                 Ax_i = Ax_i + A( i, j ) * x.at( j );
+             r = r + ( Ax_i - b.at( i ) ) * ( Ax_i - b.at( i ) );
         }
         r = sqrt( r ) / normB;
 

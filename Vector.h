@@ -18,8 +18,8 @@ public:
     ~Vector();
 
     // subscript operators pair
-    RealType & operator[] ( IndexType row );
-    RealType operator[] ( IndexType row ) const;
+    RealType & at( IndexType row );
+    RealType at( IndexType row ) const;
 
     // accessor to vector size
     IndexType rows( void ) const { return _rows; };

@@ -15,6 +15,8 @@ private:
     IndexType mesh_cols;
     IndexType mesh_rows;
     RealType tau;
+    unsigned max_iterations;
+    RealType grav_y;
     RealType M;
     RealType R;
     RealType T;
@@ -32,7 +34,6 @@ private:
     SparseMatrix* mainMatrix = nullptr;
     Vector* rhs = nullptr;
     // auxiliary variables
-    DenseMatrix** Ak = nullptr;
     Vector* alpha = nullptr;
     SparseMatrix* alpha_KE = nullptr;
     Vector* lambda = nullptr;

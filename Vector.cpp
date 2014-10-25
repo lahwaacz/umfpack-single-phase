@@ -32,16 +32,14 @@ Vector::~Vector()
     delete[] _data;
 }
 
-//inline
-RealType & Vector::operator[] ( IndexType row )
+RealType & Vector::at( IndexType row )
 {
     if( row >= _rows )
         throw BadIndex("Vector subscript out of bounds");
     return _data[ row ];
 }
 
-//inline
-RealType Vector::operator[] ( IndexType row ) const
+RealType Vector::at( IndexType row ) const
 {
     if( row >= _rows )
         throw BadIndex("const Vector subscript out of bounds");
@@ -54,7 +52,7 @@ bool Vector::save( const std::string & file_name ) const
     file << "# saved vector:" << endl;
     file << "# <row index> <value>" << endl;
     for( IndexType i = 0; i < _rows; i++ ) {
-        file << i << " " << this->operator[]( i ) << endl;
+        file << i << " " << at( i ) << endl;
     }
     return true;
 }
@@ -74,7 +72,7 @@ bool Vector::load( const std::string & file_name )
             RealType value = 0.0;
             stringstream ss( line );
             ss >> i >> value;
-            this->operator[]( i ) = value;
+            at( i ) = value;
         }
         return true;
     }
@@ -89,7 +87,7 @@ RealType norm( const Vector & v )
     RealType s = 0.0;
     for( IndexType i = 0; i < v.rows(); i++)
     {
-        s += v[ i ] * v[ i ];
+        s += v.at( i ) * v.at( i );
     }
     return sqrt( s );
 }
@@ -97,7 +95,7 @@ RealType norm( const Vector & v )
 void Vector::print( std::ostream & os ) const
 {
     for( IndexType i = 0; i < _rows; i++ ) {
-        os << this->operator[]( i ) << endl;
+        os << at( i ) << endl;
     }
 }
 
