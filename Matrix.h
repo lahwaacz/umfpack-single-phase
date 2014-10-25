@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 
 typedef double RealType;
@@ -38,5 +39,8 @@ public:
     // file saving/loading
     virtual bool save( const std::string & file_name ) const = 0;
     virtual bool load( const std::string & file_name ) = 0;
+
+    // simple output
+    void print( std::ostream & os = std::cout ) const;
 };
 

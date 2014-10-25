@@ -94,3 +94,10 @@ RealType norm( const Vector & v )
     return sqrt( s );
 }
 
+void Vector::print( std::ostream & os ) const
+{
+    for( IndexType i = 0; i < _rows; i++ ) {
+        os << this->operator[]( i ) << endl;
+    }
+}
+

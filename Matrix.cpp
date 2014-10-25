@@ -33,3 +33,13 @@ Matrix::~Matrix( void )
 {
 }
 
+void Matrix::print( std::ostream & os ) const
+{
+    for( IndexType i = 0; i < _rows; i++ ) {
+        for( IndexType j = 0; j < _cols; j++ ) {
+            os << get(i, j) << " ";
+        }
+        os << std::endl;
+    }
+}
+
