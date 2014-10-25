@@ -1,7 +1,7 @@
 CXX := $(CXX) -std=c++11
 CC := $(CXX)
 
-base_CXXFLAGS = -Wall -Wextra -pedantic -O2 -g
+base_CXXFLAGS = -Wall -Wextra -pedantic -O3 -g
 base_LIBS = -lm -lumfpack
 
 #pkgs =

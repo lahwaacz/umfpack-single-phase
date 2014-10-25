@@ -48,7 +48,7 @@ void Solver::init( void )
     // TODO: set boundary conditions
     // TODO: use sparse vectors
     qN = new Vector( mesh->num_edges() );
-    pD = new Vector( mesh->num_cells(), 1e5 );
+    pD = new Vector( mesh->num_edges(), 1e5 );
     // gradient on Dirichlet boundary
     for( IndexType i = 0; i < mesh_cols; i++ )
         pD->at( i ) += 1e4 / mesh_cols * (i + 1);

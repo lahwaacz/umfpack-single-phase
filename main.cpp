@@ -11,37 +11,6 @@
 
 using namespace std;
 
-void test_SOR( void )
-{
-    DenseMatrix m(3,3);
-    m(0,0) = 1;
-    m(0,1) = 2;
-    m(0,2) = 3;
-    m(1,1) = 1;
-    m(2,2) = 2;
-
-    Vector v(3);
-    v[0] = 1;
-    v[1] = 1;
-    v[2] = 1;
-
-    Vector x(3);
-    
-    bool converged = SORMethod(m, v, x, 0.001, 1.0);
-    cout << "SOR method converged: " << converged << endl;
-
-    for( int i = 0; i < 3; i++ )
-    {
-        for( int j = 0; j < 3; j++ )
-        {
-            cout << m( i, j ) << "*" << x[ j ];
-            if( j < 2 )
-                cout << " + ";
-        }
-        cout << " = " << v[ i ] << endl;
-    }
-}
-
 void test_mesh(void)
 {
     RectangularMesh mesh(1, 1, 3, 4);
@@ -79,54 +48,6 @@ void test_mesh(void)
         }
         cout << endl;
     }
-}
-
-void test_sparse_matrix( void )
-{
-    string fname("test-sparse-matrix.dat");
-    unsigned rows = 4;
-    unsigned cols = 3;
-
-    SparseMatrix m( rows, cols );
-    m.set( 0, 0, 1.1 );
-    m.set( 0, 1, 2.2 );
-    m.set( 0, 2, 3.3 );
-    m.set( 3, 0, 4.4 );
-    m.save( fname );
-    SparseMatrix b( rows, cols );
-    b.load( fname );
-    for( unsigned i = 0; i < rows; i++ ) {
-        for( unsigned j = 0; j < cols; j++ ) {
-            cout << b.get( i, j ) << " ";
-        }
-        cout << endl;
-    }
-}
-
-void test_umfpack_solve( void )
-{
-    unsigned order = 3;
-    SparseMatrix m( order );
-    m.set( 0, 0, 1.1 );
-    m.set( 2, 1, 2.2 );
-    m.set( 1, 2, 3.3 );
-
-    Vector x( order );
-    Vector b( order );
-    b[ 0 ] = 4.0;
-    b[ 1 ] = 5.0;
-    b[ 2 ] = 6.0;
-
-    m.linear_solve( x, b );
-
-    // výpis řešení
-    cout << "x = [";
-    for( unsigned i = 0; i < order; i++ ) {
-        cout << x[i];
-        if( i < order - 1 )
-            cout << ",";
-    }
-    cout << "]" << endl;
 }
 
 int main( int argc, char** argv )
