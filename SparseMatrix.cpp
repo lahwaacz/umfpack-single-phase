@@ -68,7 +68,8 @@ SparseMatrix::SparseMatrix( IndexType order )
 
 SparseMatrix::~SparseMatrix( void )
 {
-    umfpack_di_free_numeric( &Numeric );
+    if( Numeric )
+        umfpack_di_free_numeric( &Numeric );
 }
 
 
@@ -276,20 +277,25 @@ bool SparseMatrix::load( const string & filename )
 bool SparseMatrix::factorize( void )
 {
     void* Symbolic = nullptr;
+    int status = UMFPACK_OK;
     
     // symbolic reordering of the sparse matrix
-    umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
+    status = umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
 
-    // factorization
-    int status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
-    umfpack_di_free_symbolic( &Symbolic );
-
-    if( status == UMFPACK_OK )
-        return true;
-    else {
+    if( status != UMFPACK_OK ) {
         umfpack_di_report_status( nullptr, status );
         return false;
     }
+
+    // factorization
+    status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
+    umfpack_di_free_symbolic( &Symbolic );
+
+    if( status != UMFPACK_OK ) {
+        umfpack_di_report_status( nullptr, status );
+        return false;
+    }
+    return true;
 }
 
 // solve linear system  A*x=rhs using UMFPACK
