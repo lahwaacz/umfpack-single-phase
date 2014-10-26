@@ -1,7 +1,9 @@
 #include <iostream>
-using namespace std;
 
 #include "Solver.h"
+
+using namespace std;
+
 
 Solver::Solver( void )
 {
@@ -36,7 +38,8 @@ void Solver::init( void )
     // TODO: load problem parameters from config file
     tau = 0.1;
     max_iterations = 100;
-    grav_y = -9.806;
+    snapshot_period = 1.0;
+    grav_y = 0.0;
     M = 28.96;
     R = 8.3144621;
     T = 300;
@@ -176,17 +179,22 @@ void Solver::update_p( void )
 void Solver::run( void )
 {
     bool status = true;
+    int snapshot_period_iter = snapshot_period / tau;
+    string snapshot_prefix = string( "pressure-vect-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
     for( unsigned i = 0; i < max_iterations; i++ ) {
-        // print current p, starting with initial conditions
-//        p->save( string( "pressure-vect-" ) + to_string( i * tau ) + ".dat" );
         cout << "Time: " << i * tau << endl;
-//        for( IndexType i = 0; i < mesh_rows; i++ ) {
-//            for( IndexType j = 0; j < mesh_cols; j++ ) {
-//                cout << p->at( i * mesh_cols + j ) << " ";
+
+        // make snapshot, starting with initial conditions
+        if( i % snapshot_period_iter == 0 ) {
+            p->save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
+//            for( IndexType i = 0; i < mesh_rows; i++ ) {
+//                for( IndexType j = 0; j < mesh_cols; j++ ) {
+//                    cout << p->at( i * mesh_cols + j ) << " ";
+//                }
+//                cout << endl;
 //            }
-//            cout << endl;
-//        }
+        }
 
         mainMatrix = new SparseMatrix( mesh->num_edges(), mesh->num_edges() );
         set_main_matrix();
@@ -211,7 +219,7 @@ void Solver::run( void )
 //            cout << endl;
 //        }
 
-        p->save( "pressure-vect.dat" );
+        p->save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
     }
 }
 

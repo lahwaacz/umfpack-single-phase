@@ -16,6 +16,7 @@ private:
     IndexType mesh_rows;
     RealType tau;
     unsigned max_iterations;
+    RealType snapshot_period;
     RealType grav_y;
     RealType M;
     RealType R;
