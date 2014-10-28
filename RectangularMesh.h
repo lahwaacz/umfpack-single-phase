@@ -37,4 +37,8 @@ public:
     // TODO: refactoring (specific to problem)
     bool is_neumann_boundary( int edge ) const;
     bool is_dirichlet_boundary( int edge ) const;
+
+    // TODO: refactoring (very specific to problem)
+    int num_neumann_edges( void ) const;
+    int num_dirichlet_edges( void ) const;
 };

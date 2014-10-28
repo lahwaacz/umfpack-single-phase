@@ -154,13 +154,31 @@ bool RectangularMesh::is_vertical_edge( int edge ) const
 
 bool RectangularMesh::is_neumann_boundary( int edge ) const
 {
-    return is_outer_edge( edge ) && edge >= _cols;
-//    return is_outer_edge( edge );
+    if( ! is_outer_edge( edge ) )
+        return false;
+    return ! is_dirichlet_boundary( edge );
 }
 
 bool RectangularMesh::is_dirichlet_boundary( int edge ) const
 {
-    return is_outer_edge( edge ) && edge < _cols;
-//    return false;
+    if( ! is_outer_edge( edge ) )
+        return false;
+    // top border
+    if( edge < _cols )
+        return true;
+//    // bottom border
+//    if( edge > _rows * _cols && edge <= (_rows + 1) * _cols )
+//        return true;
+    return false;
+}
+
+int RectangularMesh::num_neumann_edges( void ) const
+{
+    return 2 * _rows + _cols;
+}
+
+int RectangularMesh::num_dirichlet_edges( void ) const
+{
+    return _cols;
 }
 

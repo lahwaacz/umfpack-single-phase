@@ -43,6 +43,10 @@ public:
     virtual bool save( const std::string & filename ) const;
     virtual bool load( const std::string & filename );
 
+    // solve linear system with UMFPACK
     bool factorize( void );
     bool linear_solve( Vector & x, Vector & rhs );
+
+    // reserve space for 'n' non-zero elements
+    void reserve( unsigned n );
 };

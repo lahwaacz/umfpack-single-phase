@@ -280,6 +280,7 @@ bool SparseMatrix::factorize( void )
     int status = UMFPACK_OK;
     
     // symbolic reordering of the sparse matrix
+    // TODO: symbolic reordering can be reused for different matrices
     status = umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
 
     if( status != UMFPACK_OK ) {
@@ -326,5 +327,11 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
         umfpack_di_report_status( nullptr, status );
         return false;
     }
+}
+
+void SparseMatrix::reserve( unsigned n )
+{
+    _values.reserve( n );
+    _column_indexes.reserve( n );
 }
 

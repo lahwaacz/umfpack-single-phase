@@ -66,6 +66,7 @@ void Solver::init( void )
     // auxiliary variables
     alpha = new Vector( mesh->num_cells() );
     alpha_KE = new SparseMatrix( mesh->num_cells(), mesh->num_edges() );
+    alpha_KE->reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
     lambda = new Vector( mesh->num_cells() );
 
     dxy = mesh->get_dx() / mesh->get_dy();
@@ -183,7 +184,7 @@ void Solver::run( void )
 {
     bool status = true;
     int snapshot_period_iter = snapshot_period / tau;
-    string snapshot_prefix = string( "pressure-vect-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
+    string snapshot_prefix = string( "pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
     for( unsigned i = 0; i < max_iterations; i++ ) {
         cout << "Time: " << i * tau << endl;
@@ -200,6 +201,9 @@ void Solver::run( void )
         }
 
         mainMatrix = new SparseMatrix( mesh->num_edges(), mesh->num_edges() );
+        // reserve space to avoid reallocation
+        mainMatrix->reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
+
         update_main_system();
         status = mainMatrix->linear_solve( *ptrace, *rhs );
         if( status == false )
