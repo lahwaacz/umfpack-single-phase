@@ -30,16 +30,17 @@ Solver::~Solver( void )
 
 void Solver::init( void )
 {
-    area_width = 2.0;
-    area_height = 1.0;
+    area_width = 0.01;
+    area_height = 0.01;
     mesh_cols = 100;
     mesh_rows = 100;
     mesh = new RectangularMesh( area_width, area_height, mesh_rows, mesh_cols );
     // TODO: load problem parameters from config file
     tau = 0.1;
-    max_iterations = 100;
+    max_iterations = 30;
     snapshot_period = 1.0;
-    grav_y = 0.0;
+    grav_y = -9.806;
+//    grav_y = 0.0;
     M = 28.96;
     R = 8.3144621;
     T = 300;
@@ -71,6 +72,22 @@ void Solver::init( void )
     dyx = mesh->get_dy() / mesh->get_dx();
 }
 
+RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
+{
+    // left or right
+    if( mesh->is_vertical_edge( edge_E ) )
+        return 0.0;
+
+    RealType value = 0.5 * p->at( cell_K ) * M / R / T * grav_y * mesh->get_dy();
+
+    // bottom
+    if( mesh->get_edge_order( cell_K, edge_E ) == 1 )
+        return value;
+
+    // top
+    return -value;
+}
+
 void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
 {
     for( int i = 0; i < 4; i++ ) {
@@ -87,7 +104,7 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
     }
 }
 
-void Solver::set_main_matrix( void )
+void Solver::update_main_system( void )
 {
     DenseMatrix** Ak = new DenseMatrix* [ mesh->num_cells() ];
 
@@ -107,8 +124,10 @@ void Solver::set_main_matrix( void )
         set_Ak( *Ak[ cell_K ], cell_K );
     }
     
-    // set main matrix elements
+    // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
+        rhs->at( edge_E ) = 0.0;
+
         // inner edge or Neumann boundary
         if( ! mesh->is_dirichlet_boundary( edge_E ) ) {
             for( IndexType i = 0; i < 2; i++ ) {
@@ -116,17 +135,29 @@ void Solver::set_main_matrix( void )
                 // on Neumann boundary only one term/cell contributes
                 if( cell_K < 0 )
                     continue;
+
                 for( IndexType j = 0; j < 4; j++ ) {
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
+                    RealType A_KEF = (*(Ak[ cell_K ]))( mesh->get_edge_order( cell_K, edge_E ), j );
+                    // set main matrix element
                     RealType value = mainMatrix->get( edge_E, edge_F);
-                    value += (*(Ak[ cell_K ]))( mesh->get_edge_order( cell_K, edge_E ), j );
-                    mainMatrix->set( edge_E, edge_F, value );
+                    mainMatrix->set( edge_E, edge_F, value + A_KEF );
+                    // right hand side
+                    rhs->at( edge_E ) += A_KEF * G_KE( cell_K, edge_F );
                 }
+
+                // right-hand-side
+                rhs->at( edge_E ) += alpha_KE->get( cell_K, edge_E ) / ( lambda->at( cell_K ) + alpha->at( cell_K ) ) * ( F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K ) );
             }
         }
         // Dirichlet boundary
         else {
             mainMatrix->set( edge_E, edge_E, 1.0 );
+            rhs->at( edge_E ) = pD->at( edge_E );
+        }
+        // Neumann boundary
+        if( mesh->is_neumann_boundary( edge_E ) ) {
+            rhs->at( edge_E ) += qN->at( edge_E );
         }
     }
 
@@ -136,41 +167,13 @@ void Solver::set_main_matrix( void )
     delete[] Ak;
 }
 
-void Solver::update_rhs( void )
-{
-    for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
-        rhs->at( edge_E ) = 0.0;
-        // inner edge or Neumann boundary
-        if( ! mesh->is_dirichlet_boundary( edge_E ) ) {
-            for( IndexType i = 0; i < 2; i++ ) {
-                IndexType cell_K = mesh->cell_for_edge( edge_E, i );
-                if( cell_K < 0 )
-                    continue;
-                // TODO: optimize as linear function of p[cell_K]
-                // TODO: gravity
-                rhs->at( edge_E ) += alpha_KE->get( cell_K, edge_E ) / ( lambda->at( cell_K ) + alpha->at( cell_K ) ) * ( F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K ) );
-            }
-        }
-        // Dirichlet boundary
-        else {
-            rhs->at( edge_E ) = pD->at( edge_E );
-        }
-        // Neumann boundary
-        if( mesh->is_neumann_boundary( edge_E ) ) {
-            rhs->at( edge_E ) += qN->at( edge_E );
-        }
-    }
-}
-
 void Solver::update_p( void )
 {
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        // TODO: optimize as linear function in p_F
         p->at( cell_K ) = F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K );
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            // TODO: gravity
-            p->at( cell_K ) += alpha_KE->get( cell_K, edge_F ) * ptrace->at( edge_F );
+            p->at( cell_K ) += alpha_KE->get( cell_K, edge_F ) * ( ptrace->at( edge_F ) - G_KE( cell_K, edge_F ) );
         }
         p->at( cell_K ) /= lambda->at( cell_K ) + alpha->at( cell_K );
     }
@@ -197,13 +200,10 @@ void Solver::run( void )
         }
 
         mainMatrix = new SparseMatrix( mesh->num_edges(), mesh->num_edges() );
-        set_main_matrix();
-        update_rhs();
-
+        update_main_system();
         status = mainMatrix->linear_solve( *ptrace, *rhs );
         if( status == false )
             break;
-
         update_p();
 
         delete mainMatrix;

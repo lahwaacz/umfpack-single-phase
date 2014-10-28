@@ -42,15 +42,17 @@ private:
     RealType dxy;
     RealType dyx;
 
+    // auxiliary methods
+    RealType G_KE( IndexType cell_K, IndexType edge_E );
+    void set_Ak( DenseMatrix & Ak, IndexType k );
+
 public:
     Solver( void );
     ~Solver( void );
 
     void init( void );
-    void set_Ak( DenseMatrix & Ak, IndexType k );
-    void update_rhs( void );
+    void update_main_system( void );
     void update_p( void );
-    void set_main_matrix( void );
     void run( void );
 };
 
