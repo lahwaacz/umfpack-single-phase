@@ -9,3 +9,8 @@ main
 
 # generated images
 *.png
+
+# valgrind tools
+cachegrind.out.*
+callgrind.out.*
+massif.out.*
