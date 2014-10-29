@@ -16,16 +16,24 @@ LDLIBS := $(base_LIBS) $(pkgs_LIBS)
 SRC = main.cpp Matrix.cpp DenseMatrix.cpp SparseMatrix.cpp Vector.cpp SOR.cpp RectangularMesh.cpp Solver.cpp
 DIST_TARBALL = bak-$(shell git describe --always | sed 's|-|.|g').tar.gz
 
+export
+
 all: main
 
 main: $(SRC:%.cpp=%.o)
 
+tests: main force_look
+	$(MAKE) $(MFLAGS) --directory=tests
+
 clean:
 	$(RM) *.[od] main
+	$(MAKE) $(MFLAGS) --directory=tests clean
 
-dist: clean
+dist:
 	$(RM) $(DIST_TARBALL) $(DIST_TARBALL).sig
 	tar czf $(DIST_TARBALL) $(shell git ls-files)
 	gpg --detach-sign $(DIST_TARBALL)
+
+force_look:
 
 -include $(SRC:%.cpp=%.d)
