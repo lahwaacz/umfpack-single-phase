@@ -22,7 +22,7 @@ Solver::~Solver( void )
     delete rhs;
 
     delete alpha;
-    delete alpha_KE;
+    delete beta;
     delete lambda;
 
     delete mesh;
@@ -65,8 +65,8 @@ void Solver::init( void )
 
     // auxiliary variables
     alpha = new Vector( mesh->num_cells() );
-    alpha_KE = new SparseMatrix( mesh->num_cells(), mesh->num_edges() );
-    alpha_KE->reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
+    beta = new SparseMatrix( mesh->num_cells(), mesh->num_edges() );
+    beta->reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
     lambda = new Vector( mesh->num_cells() );
 
     dxy = mesh->get_dx() / mesh->get_dy();
@@ -96,11 +96,11 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
             IndexType edge_E = mesh->edge_for_cell( k, i );
             IndexType edge_F = mesh->edge_for_cell( k, j );
 
-            Ak( i, j ) = - alpha_KE->get( k, edge_E ) * alpha_KE->get( k, edge_F ) / ( lambda->at( k ) + alpha->at( k ) );
+            Ak( i, j ) = - beta->get( k, edge_E ) * beta->get( k, edge_F ) / ( lambda->at( k ) + alpha->at( k ) );
 
             // diagonal of b_k
             if( i == j )
-                Ak( i, j ) += alpha_KE->get( k, edge_E );
+                Ak( i, j ) += beta->get( k, edge_E );
         }
     }
 }
@@ -111,13 +111,12 @@ void Solver::update_main_system( void )
 
     // set auxiliary vectors + local matrices Ak on each element
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        // set alpha_KE, alpha_K coefficients
         alpha->at( cell_K ) = 0.0;
         for( int i = 0; i < 4; i++ ) {
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
             RealType value = 6 * p->at( cell_K ) * M / R / T * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
-            alpha_KE->set( cell_K, edge_E, value );
+            beta->set( cell_K, edge_E, value );
             alpha->at( cell_K ) += value;
         }
         lambda->at( cell_K ) = porosity->at( cell_K ) * M / R / T * mesh->measure_cell( cell_K ) / tau;
@@ -141,14 +140,14 @@ void Solver::update_main_system( void )
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
                     RealType A_KEF = (*(Ak[ cell_K ]))( mesh->get_edge_order( cell_K, edge_E ), j );
                     // set main matrix element
-                    RealType value = mainMatrix->get( edge_E, edge_F);
+                    RealType value = mainMatrix->get( edge_E, edge_F );
                     mainMatrix->set( edge_E, edge_F, value + A_KEF );
                     // right hand side
                     rhs->at( edge_E ) += A_KEF * G_KE( cell_K, edge_F );
                 }
 
                 // right-hand-side
-                rhs->at( edge_E ) += alpha_KE->get( cell_K, edge_E ) / ( lambda->at( cell_K ) + alpha->at( cell_K ) ) * ( F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K ) );
+                rhs->at( edge_E ) += beta->get( cell_K, edge_E ) / ( lambda->at( cell_K ) + alpha->at( cell_K ) ) * ( F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K ) );
             }
         }
         // Dirichlet boundary
@@ -174,7 +173,7 @@ void Solver::update_p( void )
         p->at( cell_K ) = F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K );
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            p->at( cell_K ) += alpha_KE->get( cell_K, edge_F ) * ( ptrace->at( edge_F ) - G_KE( cell_K, edge_F ) );
+            p->at( cell_K ) += beta->get( cell_K, edge_F ) * ( ptrace->at( edge_F ) - G_KE( cell_K, edge_F ) );
         }
         p->at( cell_K ) /= lambda->at( cell_K ) + alpha->at( cell_K );
     }

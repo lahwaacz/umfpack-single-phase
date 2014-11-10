@@ -36,7 +36,7 @@ private:
     Vector* rhs = nullptr;
     // auxiliary variables
     Vector* alpha = nullptr;
-    SparseMatrix* alpha_KE = nullptr;
+    SparseMatrix* beta = nullptr;
     Vector* lambda = nullptr;
 
     RealType dxy;
