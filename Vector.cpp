@@ -7,43 +7,79 @@
 
 using namespace std;
 
-Vector::Vector( IndexType rows )
-    : _rows( rows )
+bool Vector::allocateMemory( RealType* & data, const IndexType & size )
 {
-    if( rows == 0 )
-        throw BadIndex("Vector constructor has 0 size");
-    _data = new RealType[ rows ];
+    data = new RealType[ size ];
+    if( ! data )
+        return false;
+    return true;
 }
 
-// constructor for constant vector
-Vector::Vector( IndexType rows, RealType init_value )
-    : _rows( rows )
+bool Vector::freeMemory( RealType* & data )
 {
-    if( rows == 0 )
-        throw BadIndex("Vector constructor has 0 size");
-    _data = new RealType[ rows ];
-    
-    for( IndexType i = 0; i < rows; i++ )
-        _data[ i ] = init_value;
+    delete[] data;
+    return true;
+}
+
+// basic constructor
+Vector::Vector()
+    : size( 0 ), data( nullptr )
+{
 }
 
 Vector::~Vector()
 {
-    delete[] _data;
+    freeMemory( data );
 }
 
-RealType & Vector::at( IndexType row )
+bool Vector::setSize( const IndexType size )
 {
-    if( row >= _rows )
+    if( size < 0 )
+        throw BadIndex("Attempted to set negative vector size");
+    
+    if( data ) {
+        freeMemory( data );
+        data = nullptr;
+    }
+    this->size = size;
+    if( ! allocateMemory( data, this->size ) )
+        return false;
+    return true;
+}
+
+IndexType Vector::getSize( void ) const
+{
+    return size;
+}
+
+void Vector::setElement( const IndexType index, const RealType & value )
+{
+    data[ index ] = value;
+}
+
+RealType Vector::getElement( IndexType index ) const
+{
+    return data[ index ];
+}
+
+RealType & Vector::operator[]( IndexType index )
+{
+    if( index < 0 || index >= size )
         throw BadIndex("Vector subscript out of bounds");
-    return _data[ row ];
+    return data[ index ];
 }
 
-RealType Vector::at( IndexType row ) const
+RealType Vector::operator[]( IndexType index ) const
 {
-    if( row >= _rows )
+    if( index < 0 || index >= size )
         throw BadIndex("const Vector subscript out of bounds");
-    return _data[ row ];
+    return data[ index ];
+}
+
+void Vector::setAllElements( const RealType & value )
+{
+    for( IndexType i = 0; i < size; i++ )
+        data[ i ] = value;
 }
 
 bool Vector::save( const std::string & file_name ) const
@@ -51,8 +87,8 @@ bool Vector::save( const std::string & file_name ) const
     ofstream file( file_name.c_str() );
     file << "# saved vector:" << endl;
     file << "# <row index> <value>" << endl;
-    for( IndexType i = 0; i < _rows; i++ ) {
-        file << i << " " << at( i ) << endl;
+    for( IndexType i = 0; i < size; i++ ) {
+        file << i << " " << getElement( i ) << endl;
     }
     return true;
 }
@@ -72,7 +108,7 @@ bool Vector::load( const std::string & file_name )
             RealType value = 0.0;
             stringstream ss( line );
             ss >> i >> value;
-            at( i ) = value;
+            setElement( i, value );
         }
         return true;
     }
@@ -85,17 +121,17 @@ bool Vector::load( const std::string & file_name )
 RealType norm( const Vector & v )
 {
     RealType s = 0.0;
-    for( IndexType i = 0; i < v.rows(); i++)
+    for( IndexType i = 0; i < v.getSize(); i++)
     {
-        s += v.at( i ) * v.at( i );
+        s += v.getElement( i ) * v.getElement( i );
     }
     return sqrt( s );
 }
 
 void Vector::print( std::ostream & os ) const
 {
-    for( IndexType i = 0; i < _rows; i++ ) {
-        os << at( i ) << endl;
+    for( IndexType i = 0; i < size; i++ ) {
+        os << getElement( i ) << endl;
     }
 }
 

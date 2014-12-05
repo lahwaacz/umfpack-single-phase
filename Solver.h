@@ -23,21 +23,21 @@ private:
     RealType T;
     RealType permeability;
     RealType viscosity;
-    Vector* porosity = nullptr;
-    Vector* F = nullptr;
+    Vector porosity;
+    Vector F;
     // boundary conditions
-    Vector* qN = nullptr;
-    Vector* pD = nullptr;
+    Vector qN;
+    Vector pD;
     // variables
-    Vector* p = nullptr;
-    Vector* ptrace = nullptr;
+    Vector p;
+    Vector ptrace;
     // main system matrix + right-hand-side
     SparseMatrix* mainMatrix = nullptr;
-    Vector* rhs = nullptr;
+    Vector rhs;
     // auxiliary variables
-    Vector* alpha = nullptr;
+    Vector alpha;
     SparseMatrix* beta = nullptr;
-    Vector* lambda = nullptr;
+    Vector lambda;
 
     RealType dxy;
     RealType dyx;

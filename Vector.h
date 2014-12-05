@@ -9,20 +9,33 @@
 class Vector
 {
 private:
-    IndexType _rows;
-    RealType* _data;
+    IndexType size;
+    RealType* data;
+
+    bool allocateMemory( RealType* & data, const IndexType & size );
+    bool freeMemory( RealType* & data );
 public:
-    Vector( IndexType rows );
-    Vector( IndexType rows, RealType init_value );
-    Vector( Vector const & v );
+    Vector();
     ~Vector();
 
-    // subscript operators pair
-    RealType & at( IndexType row );
-    RealType at( IndexType row ) const;
+    // set/get vector size
+    bool setSize( const IndexType size );
+    IndexType getSize( void ) const;
 
-    // accessor to vector size
-    IndexType rows( void ) const { return _rows; };
+    // accessors to data storage
+    const RealType* getData() const;
+    RealType* getData();
+
+    // element setters/getters
+    void setElement( const IndexType index, const RealType & value );
+    RealType getElement( IndexType index ) const;
+
+    // subscript operators pair
+    RealType & operator[] ( IndexType row );
+    RealType operator[] ( IndexType row ) const;
+
+    // set all elements to the same value
+    void setAllElements( const RealType & value );
 
     // file saving/loading
     bool save( const std::string & file_name ) const;

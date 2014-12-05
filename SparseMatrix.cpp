@@ -304,7 +304,7 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
 {
     if( _rows != _cols )
         throw string("can't solve linear system on non-square matrix");
-    if( x.rows() != _rows || rhs.rows() != _rows )
+    if( x.getSize() != _rows || rhs.getSize() != _rows )
         throw string("passed vectors don't match matrix dimensions");
 
     // factorize
@@ -319,7 +319,7 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     int sys = UMFPACK_Aat;
 
     // solve with specified right-hand-side
-    int status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x.at(0), &rhs.at(0), Numeric, nullptr, nullptr );
+    int status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, nullptr, nullptr );
 
     if( status == UMFPACK_OK )
         return true;

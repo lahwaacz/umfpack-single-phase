@@ -11,20 +11,7 @@ Solver::Solver( void )
 
 Solver::~Solver( void )
 {
-    delete porosity;
-    delete F;
-    delete qN;
-    delete pD;
-
-    delete p;
-    delete ptrace;
-
-    delete rhs;
-
-    delete alpha;
     delete beta;
-    delete lambda;
-
     delete mesh;
 }
 
@@ -37,8 +24,8 @@ void Solver::init( void )
     mesh = new RectangularMesh( area_width, area_height, mesh_rows, mesh_cols );
     // TODO: load problem parameters from config file
     tau = 0.1;
-    max_iterations = 30;
-    snapshot_period = 1.0;
+    max_iterations = 10;
+    snapshot_period = 0.1;
     grav_y = -9.806;
 //    grav_y = 0.0;
     M = 28.96;
@@ -46,28 +33,31 @@ void Solver::init( void )
     T = 300;
     permeability = 1e-3;
     viscosity = 18.6e-6;
-    porosity = new Vector( mesh->num_cells(), 1e-10 );
-    F = new Vector( mesh->num_cells() );
+    porosity.setSize( mesh->num_cells() );
+    porosity.setAllElements( 1e-10 );
+    F.setSize( mesh->num_cells() );
 
     // TODO: set boundary conditions
     // TODO: use sparse vectors
-    qN = new Vector( mesh->num_edges() );
-    pD = new Vector( mesh->num_edges(), 1e5 );
+    qN.setSize( mesh->num_edges() );
+    pD.setSize( mesh->num_edges() );
+    pD.setAllElements( 1e5 );
     // gradient on Dirichlet boundary
     for( IndexType i = 0; i < mesh_cols; i++ )
-        pD->at( i ) += 1e4 / mesh_cols * (i + 1);
+        pD[ i ] += 1e4 / mesh_cols * (i + 1);
 
     // TODO: set initial conditions
-    p = new Vector( mesh->num_cells(), 1e5 );
-    ptrace = new Vector( mesh->num_edges() );
+    p.setSize( mesh->num_cells() );
+    p.setAllElements( 1e5 );
+    ptrace.setSize( mesh->num_edges() );
 
-    rhs = new Vector( mesh->num_edges() );
+    rhs.setSize( mesh->num_edges() );
 
     // auxiliary variables
-    alpha = new Vector( mesh->num_cells() );
+    alpha.setSize( mesh->num_cells() );
     beta = new SparseMatrix( mesh->num_cells(), mesh->num_edges() );
     beta->reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
-    lambda = new Vector( mesh->num_cells() );
+    lambda.setSize( mesh->num_cells() );
 
     dxy = mesh->get_dx() / mesh->get_dy();
     dyx = mesh->get_dy() / mesh->get_dx();
@@ -79,7 +69,7 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     if( mesh->is_vertical_edge( edge_E ) )
         return 0.0;
 
-    RealType value = 0.5 * p->at( cell_K ) * M / R / T * grav_y * mesh->get_dy();
+    RealType value = 0.5 * p[ cell_K ] * M / R / T * grav_y * mesh->get_dy();
 
     // bottom
     if( mesh->get_edge_order( cell_K, edge_E ) == 1 )
@@ -96,7 +86,7 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
             IndexType edge_E = mesh->edge_for_cell( k, i );
             IndexType edge_F = mesh->edge_for_cell( k, j );
 
-            Ak( i, j ) = - beta->get( k, edge_E ) * beta->get( k, edge_F ) / ( lambda->at( k ) + alpha->at( k ) );
+            Ak( i, j ) = - beta->get( k, edge_E ) * beta->get( k, edge_F ) / ( lambda[ k ] + alpha[ k ] );
 
             // diagonal of b_k
             if( i == j )
@@ -111,22 +101,22 @@ void Solver::update_main_system( void )
 
     // set auxiliary vectors + local matrices Ak on each element
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        alpha->at( cell_K ) = 0.0;
+        alpha[ cell_K ] = 0.0;
         for( int i = 0; i < 4; i++ ) {
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
-            RealType value = 6 * p->at( cell_K ) * M / R / T * permeability / viscosity
+            RealType value = 6 * p[ cell_K ] * M / R / T * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
             beta->set( cell_K, edge_E, value );
-            alpha->at( cell_K ) += value;
+            alpha[ cell_K ] += value;
         }
-        lambda->at( cell_K ) = porosity->at( cell_K ) * M / R / T * mesh->measure_cell( cell_K ) / tau;
+        lambda[ cell_K ] = porosity[ cell_K ] * M / R / T * mesh->measure_cell( cell_K ) / tau;
         Ak[ cell_K ] = new DenseMatrix( 4, 4 );
         set_Ak( *Ak[ cell_K ], cell_K );
     }
     
     // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
-        rhs->at( edge_E ) = 0.0;
+        rhs[ edge_E ] = 0.0;
 
         // inner edge or Neumann boundary
         if( ! mesh->is_dirichlet_boundary( edge_E ) ) {
@@ -139,25 +129,32 @@ void Solver::update_main_system( void )
                 for( IndexType j = 0; j < 4; j++ ) {
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
                     RealType A_KEF = (*(Ak[ cell_K ]))( mesh->get_edge_order( cell_K, edge_E ), j );
+
                     // set main matrix element
-                    RealType value = mainMatrix->get( edge_E, edge_F );
-                    mainMatrix->set( edge_E, edge_F, value + A_KEF );
+                    if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
+                        // set main matrix element
+                        RealType value = mainMatrix->get( edge_E, edge_F );
+                        mainMatrix->set( edge_E, edge_F, value + A_KEF );
+                    }
+                    else {
+                        rhs[ edge_E ] -= A_KEF * pD[ edge_F ];
+                    }
                     // right hand side
-                    rhs->at( edge_E ) += A_KEF * G_KE( cell_K, edge_F );
+                    rhs[ edge_E ] += A_KEF * G_KE( cell_K, edge_F );
                 }
 
                 // right-hand-side
-                rhs->at( edge_E ) += beta->get( cell_K, edge_E ) / ( lambda->at( cell_K ) + alpha->at( cell_K ) ) * ( F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K ) );
+                rhs[ edge_E ] += beta->get( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ] );
             }
         }
         // Dirichlet boundary
         else {
             mainMatrix->set( edge_E, edge_E, 1.0 );
-            rhs->at( edge_E ) = pD->at( edge_E );
+            rhs[ edge_E ] = pD[ edge_E ];
         }
         // Neumann boundary
         if( mesh->is_neumann_boundary( edge_E ) ) {
-            rhs->at( edge_E ) += qN->at( edge_E );
+            rhs[ edge_E ] += qN[ edge_E ];
         }
     }
 
@@ -170,12 +167,12 @@ void Solver::update_main_system( void )
 void Solver::update_p( void )
 {
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        p->at( cell_K ) = F->at( cell_K ) + lambda->at( cell_K ) * p->at( cell_K );
+        p[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ];
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            p->at( cell_K ) += beta->get( cell_K, edge_F ) * ( ptrace->at( edge_F ) - G_KE( cell_K, edge_F ) );
+            p[ cell_K ] += beta->get( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
         }
-        p->at( cell_K ) /= lambda->at( cell_K ) + alpha->at( cell_K );
+        p[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
     }
 }
 
@@ -190,10 +187,10 @@ void Solver::run( void )
 
         // make snapshot, starting with initial conditions
         if( i % snapshot_period_iter == 0 ) {
-            p->save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
+            p.save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
 //            for( IndexType i = 0; i < mesh_rows; i++ ) {
 //                for( IndexType j = 0; j < mesh_cols; j++ ) {
-//                    cout << p->at( i * mesh_cols + j ) << " ";
+//                    cout << p[ i * mesh_cols + j ] << " ";
 //                }
 //                cout << endl;
 //            }
@@ -204,7 +201,10 @@ void Solver::run( void )
         mainMatrix->reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
 
         update_main_system();
-        status = mainMatrix->linear_solve( *ptrace, *rhs );
+//        mainMatrix->print();
+//        p.print();
+
+        status = mainMatrix->linear_solve( ptrace, rhs );
         if( status == false )
             break;
         update_p();
@@ -217,12 +217,12 @@ void Solver::run( void )
         cout << "Time: " << max_iterations * tau << endl;
 //        for( IndexType i = 0; i < mesh_rows; i++ ) {
 //            for( IndexType j = 0; j < mesh_cols; j++ ) {
-//                cout << p->at( i * mesh_cols + j ) << " ";
+//                cout << p[ i * mesh_cols + j ] << " ";
 //            }
 //            cout << endl;
 //        }
 
-        p->save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
+        p.save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
     }
 }
 
