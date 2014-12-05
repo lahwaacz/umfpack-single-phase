@@ -8,7 +8,7 @@ bool SORMethod ( const DenseMatrix & A,
                  RealType eps,
                  RealType omega )
 {
-    IndexType n = A.cols();
+    IndexType n = A.getCols();
     RealType normB = norm( b );
     RealType r = eps + 1.0;
 

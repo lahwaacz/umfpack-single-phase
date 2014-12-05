@@ -14,6 +14,7 @@ private:
 
     bool allocateMemory( RealType* & data, const IndexType & size );
     bool freeMemory( RealType* & data );
+
 public:
     Vector();
     ~Vector();
@@ -23,16 +24,16 @@ public:
     IndexType getSize( void ) const;
 
     // accessors to data storage
-    const RealType* getData() const;
-    RealType* getData();
+    const RealType* getData( void ) const;
+    RealType* getData( void );
 
     // element setters/getters
     void setElement( const IndexType index, const RealType & value );
-    RealType getElement( IndexType index ) const;
+    RealType getElement( const IndexType index ) const;
 
     // subscript operators pair
-    RealType & operator[] ( IndexType row );
-    RealType operator[] ( IndexType row ) const;
+    RealType & operator[] ( const IndexType row );
+    RealType operator[] ( const IndexType row ) const;
 
     // set all elements to the same value
     void setAllElements( const RealType & value );

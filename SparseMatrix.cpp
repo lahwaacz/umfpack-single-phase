@@ -9,19 +9,10 @@
 #include <umfpack.h>
 
 #include "SparseMatrix.h"
+#include "exceptions.h"
 
 using namespace std;
 
-
-/**
- * Inicializační funkce - alokuje interní datové položky.
- */
-void
-SparseMatrix::_init( void )
-{
-    _row_indexes.reserve( _rows + 1 );
-    _row_indexes.push_back(0);  // počet nenulových prvků (NNZ)
-}
 
 /**
  * Smaže i-tý prvek z polí _values a _column_indexes.
@@ -47,31 +38,36 @@ SparseMatrix::_insert( IndexType i, IndexType column, RealType data )
     _column_indexes.insert( col_position, column );
 }
 
-
-/**
- * Konstruktor - vytvoří obdélníkovou matici zadaných rozměrů.
- */
-SparseMatrix::SparseMatrix( IndexType rows, IndexType columns )
-    : Matrix(rows, columns)
-{
-    _init();
-}
-
-/**
- * Konstruktor - vytvoří čtvercovou matici zadaného řádu.
- */
-SparseMatrix::SparseMatrix( IndexType order )
-    : Matrix(order)
-{
-    _init();
-}
-
 SparseMatrix::~SparseMatrix( void )
 {
     if( Numeric )
         umfpack_di_free_numeric( &Numeric );
 }
 
+
+bool SparseMatrix::setSize( const IndexType rows, const IndexType cols )
+{
+    if( rows < 0 || cols < 0 )
+        throw BadIndex("Attempted to set negative matrix size");
+
+    // clear content
+    _values.clear();
+    _column_indexes.clear();
+    _row_indexes.clear();
+    
+    // update size
+    this->rows = rows;
+    this->cols = cols;
+
+    try {
+        _row_indexes.reserve( rows + 1 );
+    } catch (...) {
+        return false;
+    }
+
+    _row_indexes.push_back( 0 );  // number of non-zero elements
+    return true;
+}
 
 /**
  * Nastaví prvek matice na zadanou hodnotu.
@@ -82,12 +78,12 @@ SparseMatrix::~SparseMatrix( void )
  * @return          false if setting failed
  */
 bool
-SparseMatrix::set( IndexType row, IndexType column, RealType data )
+SparseMatrix::setElement( const IndexType row, const IndexType column, const RealType & data )
 {
-    if (row >= _rows or column >= _cols)
-        throw string("Indexy mimo rozměry matice");
+    if( row < 0 || row >= rows || column < 0 || column >= cols )
+        throw BadIndex("matrix indexes out of bounds");
 
-    RealType current_value = get(row, column);
+    RealType current_value = getElement(row, column);
 
     // overwrite existing element
     if (data != 0 and current_value != 0) {
@@ -142,9 +138,9 @@ SparseMatrix::set( IndexType row, IndexType column, RealType data )
  * @return          hodnota prvku matice
  */
 RealType
-SparseMatrix::get( IndexType row, IndexType column ) const
+SparseMatrix::getElement( const IndexType row, const IndexType column ) const
 {
-    if( row >= _rows or column >= _cols )
+    if( row >= rows or column >= cols )
         throw string("Indexy mimo rozměry matice");
 
     // check if row has any non-zero element
@@ -197,7 +193,7 @@ bool SparseMatrix::save( const string & filename ) const
         outfile << *iter << " ";
     }
     // write "non-allocated" row indexes to satisfy CSR format
-    for( IndexType i = _row_indexes.size(); i <= _rows; i++ ) {
+    for( IndexType i = _row_indexes.size(); i <= rows; i++ ) {
         outfile << _row_indexes.back() << " ";
     }
     outfile << endl;
@@ -209,6 +205,7 @@ bool SparseMatrix::save( const string & filename ) const
  * Načte data ze souboru ve formátu CSR.
  * @return  true pokud načtení proběhlo úspěšně
  */
+// FIXME: needs to call setSize() first
 bool SparseMatrix::load( const string & filename )
 {
     ifstream infile(filename.c_str());
@@ -238,7 +235,7 @@ bool SparseMatrix::load( const string & filename )
             tmp_vect_rows.push_back(tmp);
         }
     }
-    if( _row_indexes.capacity() != tmp_vect_rows.size() or tmp_vect_rows.back() > _rows * _cols)
+    if( _row_indexes.capacity() != tmp_vect_rows.size() or tmp_vect_rows.back() > rows * cols )
         return false;
 
     // parse column indexes
@@ -281,7 +278,7 @@ bool SparseMatrix::factorize( void )
     
     // symbolic reordering of the sparse matrix
     // TODO: symbolic reordering can be reused for different matrices
-    status = umfpack_di_symbolic( _rows, _rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
+    status = umfpack_di_symbolic( rows, rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
 
     if( status != UMFPACK_OK ) {
         umfpack_di_report_status( nullptr, status );
@@ -302,9 +299,9 @@ bool SparseMatrix::factorize( void )
 // solve linear system  A*x=rhs using UMFPACK
 bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
 {
-    if( _rows != _cols )
+    if( rows != cols )
         throw string("can't solve linear system on non-square matrix");
-    if( x.getSize() != _rows || rhs.getSize() != _rows )
+    if( x.getSize() != rows || rhs.getSize() != rows )
         throw string("passed vectors don't match matrix dimensions");
 
     // factorize
@@ -329,9 +326,14 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     }
 }
 
-void SparseMatrix::reserve( unsigned n )
+bool SparseMatrix::reserve( unsigned n )
 {
-    _values.reserve( n );
-    _column_indexes.reserve( n );
+    try {
+        _values.reserve( n );
+        _column_indexes.reserve( n );
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 

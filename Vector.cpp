@@ -52,6 +52,16 @@ IndexType Vector::getSize( void ) const
     return size;
 }
 
+const RealType* Vector::getData( void ) const
+{
+    return data;
+}
+
+RealType* Vector::getData( void )
+{
+    return data;
+}
+
 void Vector::setElement( const IndexType index, const RealType & value )
 {
     data[ index ] = value;
@@ -94,6 +104,7 @@ bool Vector::save( const std::string & file_name ) const
 }
 
 // TODO: check dimensions
+// FIXME: call setSize() first
 bool Vector::load( const std::string & file_name )
 {
     ifstream file( file_name.c_str() );

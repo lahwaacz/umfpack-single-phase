@@ -8,21 +8,30 @@ class DenseMatrix
     : public Matrix
 {
 private:
-    RealType* _data;
+    RealType* data;
 
-    virtual void _init( void );
+    // TODO: split into Array.h
+    bool allocateMemory( RealType* & data, const IndexType & size );
+    bool freeMemory( RealType* & data );
+
+    void _init( void );
 
 public:
-    DenseMatrix( IndexType rows, IndexType cols );
-    DenseMatrix( DenseMatrix const & m );
     ~DenseMatrix();
 
-    // subscript operators pair
-    RealType & operator() ( IndexType row, IndexType col );
-    RealType operator() ( IndexType row, IndexType col ) const;
+    virtual bool setSize( const IndexType rows, const IndexType cols );
+
+    // accessors to data storage
+    const RealType* getData( void ) const;
+    RealType* getData( void );
+
     // accessors to matrix elements
-    virtual bool set( IndexType row, IndexType col, RealType data );
-    virtual RealType get( IndexType row, IndexType col ) const;
+    virtual bool setElement( const IndexType row, const IndexType col, const RealType & data );
+    virtual RealType getElement( const IndexType row, const IndexType col ) const;
+
+    // subscript operators pair
+    RealType & operator() ( const IndexType row, const IndexType col );
+    RealType operator() ( const IndexType row, const IndexType col ) const;
 
     // file saving/loading
     virtual bool save( const std::string & file_name ) const;

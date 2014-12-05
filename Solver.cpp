@@ -11,7 +11,6 @@ Solver::Solver( void )
 
 Solver::~Solver( void )
 {
-    delete beta;
     delete mesh;
 }
 
@@ -55,8 +54,8 @@ void Solver::init( void )
 
     // auxiliary variables
     alpha.setSize( mesh->num_cells() );
-    beta = new SparseMatrix( mesh->num_cells(), mesh->num_edges() );
-    beta->reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
+    beta.setSize( mesh->num_cells(), mesh->num_edges() );
+    beta.reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
     lambda.setSize( mesh->num_cells() );
 
     dxy = mesh->get_dx() / mesh->get_dy();
@@ -86,11 +85,11 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
             IndexType edge_E = mesh->edge_for_cell( k, i );
             IndexType edge_F = mesh->edge_for_cell( k, j );
 
-            Ak( i, j ) = - beta->get( k, edge_E ) * beta->get( k, edge_F ) / ( lambda[ k ] + alpha[ k ] );
+            Ak( i, j ) = - beta.getElement( k, edge_E ) * beta.getElement( k, edge_F ) / ( lambda[ k ] + alpha[ k ] );
 
             // diagonal of b_k
             if( i == j )
-                Ak( i, j ) += beta->get( k, edge_E );
+                Ak( i, j ) += beta.getElement( k, edge_E );
         }
     }
 }
@@ -106,11 +105,13 @@ void Solver::update_main_system( void )
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
             RealType value = 6 * p[ cell_K ] * M / R / T * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
-            beta->set( cell_K, edge_E, value );
+            beta.setElement( cell_K, edge_E, value );
             alpha[ cell_K ] += value;
         }
         lambda[ cell_K ] = porosity[ cell_K ] * M / R / T * mesh->measure_cell( cell_K ) / tau;
-        Ak[ cell_K ] = new DenseMatrix( 4, 4 );
+        Ak[ cell_K ] = new DenseMatrix();
+        // TODO: handle allocation errors
+        Ak[ cell_K ]->setSize( 4, 4 );
         set_Ak( *Ak[ cell_K ], cell_K );
     }
     
@@ -133,8 +134,8 @@ void Solver::update_main_system( void )
                     // set main matrix element
                     if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
                         // set main matrix element
-                        RealType value = mainMatrix->get( edge_E, edge_F );
-                        mainMatrix->set( edge_E, edge_F, value + A_KEF );
+                        RealType value = mainMatrix->getElement( edge_E, edge_F );
+                        mainMatrix->setElement( edge_E, edge_F, value + A_KEF );
                     }
                     else {
                         rhs[ edge_E ] -= A_KEF * pD[ edge_F ];
@@ -144,12 +145,12 @@ void Solver::update_main_system( void )
                 }
 
                 // right-hand-side
-                rhs[ edge_E ] += beta->get( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ] );
+                rhs[ edge_E ] += beta.getElement( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ] );
             }
         }
         // Dirichlet boundary
         else {
-            mainMatrix->set( edge_E, edge_E, 1.0 );
+            mainMatrix->setElement( edge_E, edge_E, 1.0 );
             rhs[ edge_E ] = pD[ edge_E ];
         }
         // Neumann boundary
@@ -170,7 +171,7 @@ void Solver::update_p( void )
         p[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ];
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            p[ cell_K ] += beta->get( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
+            p[ cell_K ] += beta.getElement( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
         }
         p[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
     }
@@ -196,7 +197,8 @@ void Solver::run( void )
 //            }
         }
 
-        mainMatrix = new SparseMatrix( mesh->num_edges(), mesh->num_edges() );
+        mainMatrix = new SparseMatrix();
+        mainMatrix->setSize( mesh->num_edges(), mesh->num_edges() );
         // reserve space to avoid reallocation
         mainMatrix->reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
 

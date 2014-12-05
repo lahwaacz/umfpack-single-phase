@@ -36,7 +36,7 @@ private:
     Vector rhs;
     // auxiliary variables
     Vector alpha;
-    SparseMatrix* beta = nullptr;
+    SparseMatrix beta;
     Vector lambda;
 
     RealType dxy;

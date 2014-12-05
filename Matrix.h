@@ -8,33 +8,30 @@
 #include <iostream>
 #include <string>
 
+// TODO: move into config.h
 typedef double RealType;
 typedef int IndexType;
 
 /**
- * @brief   Abstraktní třída pro matice @ref StdMatrix a @ref Matrix.
+ * @brief   Abstraktní třída pro matice @ref DenseMatrix a @ref SparseMatrix.
  */
 class Matrix
 {
 protected:
-    const IndexType _rows;  ///< počet řádků matice
-    const IndexType _cols;  ///< počet sloupců matice
-
-    // initialization method (to be called from constructor)
-    virtual void _init( void ) = 0;
+    IndexType rows = 0;
+    IndexType cols = 0;
 
 public:
-    Matrix( IndexType rows, IndexType cols );
-    Matrix( IndexType order );
     virtual ~Matrix( void );
 
-    // accessors to matrix elements
-    virtual bool set( IndexType row, IndexType col, RealType data ) = 0;
-    virtual RealType get( IndexType row, IndexType col ) const = 0;
+    // set/get vector size
+    virtual bool setSize( const IndexType rows, const IndexType cols ) = 0;
+    IndexType getRows( void ) const;
+    IndexType getCols( void ) const;
 
-    // accessors to matrix size
-    IndexType rows( void ) const { return _rows; };
-    IndexType cols( void ) const { return _cols; };
+    // accessors to matrix elements
+    virtual bool setElement( const IndexType row, const IndexType col, const RealType & data ) = 0;
+    virtual RealType getElement( const IndexType row, const IndexType col ) const = 0;
 
     // file saving/loading
     virtual bool save( const std::string & file_name ) const = 0;

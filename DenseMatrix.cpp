@@ -6,45 +6,76 @@
 
 using namespace std;
 
-void DenseMatrix::_init( void )
+// TODO: split into Array.h
+bool DenseMatrix::allocateMemory( RealType* & data, const IndexType & size )
 {
-    _data = new RealType[ rows() * cols() ];
+    data = new RealType[ size ];
+    if( ! data )
+        return false;
+    return true;
 }
 
-DenseMatrix::DenseMatrix( IndexType rows, IndexType cols )
-    : Matrix( rows, cols )
+// TODO: split into Array.h
+bool DenseMatrix::freeMemory( RealType* & data )
 {
-    _init();
+    delete[] data;
+    return true;
 }
 
 DenseMatrix::~DenseMatrix()
 {
-    delete[] _data;
+    freeMemory( data );
 }
 
-RealType & DenseMatrix::operator() ( IndexType row, IndexType col )
+bool DenseMatrix::setSize( const IndexType rows, const IndexType cols )
 {
-    if( row >= _rows || col >= _cols )
-        throw BadIndex("DenseMatrix subscript out of bounds");
-    return _data[ _cols * row + col ];
+    if( rows < 0 || cols < 0 )
+        throw BadIndex("Attempted to set negative matrix size");
+    
+    if( data ) {
+        freeMemory( data );
+        data = nullptr;
+    }
+    this->rows = rows;
+    this->cols = cols;
+    if( ! allocateMemory( data, rows * cols ) )
+        return false;
+    return true;
 }
 
-RealType DenseMatrix::operator() ( IndexType row, IndexType col ) const
+const RealType* Vector::getData( void ) const
 {
-    if( row >= _rows || col >= _cols )
-        throw BadIndex("const DenseMatrix subscript out of bounds");
-    return _data[ _cols * row + col ];
+    return data;
 }
 
-bool DenseMatrix::set( IndexType row, IndexType col, RealType data )
+RealType* Vector::getData( void )
+{
+    return data;
+}
+
+bool DenseMatrix::setElement( const IndexType row, const IndexType col, const RealType & data )
 {
     this->operator()( row, col ) = data;
     return true;
 }
 
-RealType DenseMatrix::get( IndexType row, IndexType col ) const
+RealType DenseMatrix::getElement( const IndexType row, const IndexType col ) const
 {
     return this->operator()( row, col );
+}
+
+RealType & DenseMatrix::operator() ( const IndexType row, const IndexType col )
+{
+    if( row >= rows || col >= cols )
+        throw BadIndex("DenseMatrix subscript out of bounds");
+    return data[ getCols() * row + col ];
+}
+
+RealType DenseMatrix::operator() ( const IndexType row, const IndexType col ) const
+{
+    if( row >= rows || col >= cols )
+        throw BadIndex("const DenseMatrix subscript out of bounds");
+    return data[ getCols() * row + col ];
 }
 
 bool DenseMatrix::save( const std::string & file_name ) const
@@ -52,14 +83,14 @@ bool DenseMatrix::save( const std::string & file_name ) const
     ofstream file( file_name.c_str() );
     file << "# saved dense matrix:" << endl;
     file << "# <row index> <column index> <value>" << endl;
-    for( IndexType i = 0; i < _rows; i++ ) {
-        for( IndexType j = 0; j < _cols; j++ ) {
-            file << i << " " << j << " " << this->operator()( i, j ) << endl;
+    for( IndexType i = 0; i < rows; i++ ) {
+        for( IndexType j = 0; j < cols; j++ ) {
+            file << i << " " << j << " " << getElement( i, j ) << endl;
         }
     }
     return true;
 }
-
+    
 // TODO: check dimensions
 bool DenseMatrix::load( const std::string & file_name )
 {
@@ -76,7 +107,7 @@ bool DenseMatrix::load( const std::string & file_name )
             RealType value = 0.0;
             stringstream ss( line );
             ss >> i >> j >> value;
-            this->operator()( i, j ) = value;
+            setElement( i, j, value );
         }
         return true;
     }
