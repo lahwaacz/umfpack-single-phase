@@ -5,10 +5,6 @@
 using namespace std;
 
 
-Solver::Solver( void )
-{
-}
-
 Solver::~Solver( void )
 {
     delete mesh;

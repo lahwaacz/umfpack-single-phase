@@ -9,14 +9,13 @@
 class Vector
 {
 private:
-    IndexType size;
-    RealType* data;
+    IndexType size = 0;
+    RealType* data = nullptr;
 
     bool allocateMemory( RealType* & data, const IndexType & size );
     bool freeMemory( RealType* & data );
 
 public:
-    Vector();
     ~Vector();
 
     // set/get vector size

@@ -13,9 +13,11 @@ void test_dense::test_vector_creation( void )
 {
     unsigned rows = 4;
 
-    Vector v( rows );
+    Vector v;
+    v.setSize( rows );
+    v.setAllElements( 0.0 );
     for( unsigned i = 0; i < rows; i++ )
-        CPPUNIT_ASSERT_EQUAL( v.at( i ), 0.0 );
+        CPPUNIT_ASSERT_EQUAL( 0.0, v[ i ] );
 }
 
 void test_dense::test_vector_save_load( void )
@@ -23,11 +25,12 @@ void test_dense::test_vector_save_load( void )
     string fname("test-vector.dat");
     unsigned rows = 4;
 
-    Vector v( rows );
-    v.at( 0 ) = 1.1;
-    v.at( 1 ) = 2.2;
-    v.at( 2 ) = 3.3;
-    v.at( 3 ) = 4.4;
+    Vector v;
+    v.setSize( rows );
+    v[ 0 ] = 1.1;
+    v[ 1 ] = 2.2;
+    v[ 2 ] = 3.3;
+    v[ 3 ] = 4.4;
     v.save( fname );
 
     // test created file
@@ -45,10 +48,11 @@ void test_dense::test_vector_save_load( void )
             buffer.str() );
 
     // test file loading
-    Vector b( rows );
+    Vector b;
+    b.setSize( rows );
     b.load( fname );
     for( unsigned i = 0; i < rows; i++ ) {
-        CPPUNIT_ASSERT_EQUAL( v.at( i ), b.at( i ) );
+        CPPUNIT_ASSERT_EQUAL( v[ i ], b[ i ] );
     }
 }
 
@@ -57,10 +61,12 @@ void test_dense::test_matrix_creation( void )
     unsigned rows = 4;
     unsigned cols = 3;
 
-    DenseMatrix m( rows, cols );
+    DenseMatrix m;
+    m.setSize( rows, cols );
+    m.setAllElements( 0.0 );
     for( unsigned i = 0; i < rows; i++ )
         for( unsigned j = 0; j < cols; j++ )
-            CPPUNIT_ASSERT_EQUAL( m( i, j ), 0.0 );
+            CPPUNIT_ASSERT_EQUAL( 0.0, m( i, j ) );
 }
 
 void test_dense::test_matrix_save_load( void )
@@ -69,7 +75,9 @@ void test_dense::test_matrix_save_load( void )
     unsigned rows = 4;
     unsigned cols = 3;
 
-    DenseMatrix m( rows, cols );
+    DenseMatrix m;
+    m.setSize( rows, cols );
+    m.setAllElements( 0.0 );
     m( 0, 0 ) = 1.1;
     m( 0, 1 ) = 2.2;
     m( 0, 2 ) = 3.3;
@@ -99,7 +107,8 @@ void test_dense::test_matrix_save_load( void )
             buffer.str() );
 
     // test file loading
-    DenseMatrix b( rows, cols );
+    DenseMatrix b;
+    b.setSize( rows, cols );
     b.load( fname );
     for( unsigned i = 0; i < rows; i++ )
         for( unsigned j = 0; j < cols; j++ )
@@ -109,25 +118,29 @@ void test_dense::test_matrix_save_load( void )
 void test_dense::test_solve( void )
 {
     unsigned order = 3;
-    DenseMatrix m( order, order );
+    DenseMatrix m;
+    m.setSize( order, order );
+    m.setAllElements( 0.0 );
     m(0,0) = 1;
     m(0,1) = 2;
     m(0,2) = 3;
     m(1,1) = 1;
     m(2,2) = 2;
 
-    Vector v( order );
-    v.at( 0 ) = 1;
-    v.at( 1 ) = 1;
-    v.at( 2 ) = 1;
+    Vector v;
+    v.setSize( order );
+    v[ 0 ] = 1;
+    v[ 1 ] = 1;
+    v[ 2 ] = 1;
 
-    Vector x( order );
+    Vector x;
+    x.setSize( order );
     
     bool converged = SORMethod(m, v, x, 0.001, 1.0);
     CPPUNIT_ASSERT_EQUAL( true, converged );
 
-    CPPUNIT_ASSERT_EQUAL( -2.5, x.at( 0 ) );
-    CPPUNIT_ASSERT_EQUAL( 1.0, x.at( 1 ) );
-    CPPUNIT_ASSERT_EQUAL( 0.5, x.at( 2 ) );
+    CPPUNIT_ASSERT_EQUAL( -2.5, x[ 0 ] );
+    CPPUNIT_ASSERT_EQUAL( 1.0, x[ 1 ] );
+    CPPUNIT_ASSERT_EQUAL( 0.5, x[ 2 ] );
 }
 

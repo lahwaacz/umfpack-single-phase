@@ -43,12 +43,12 @@ bool DenseMatrix::setSize( const IndexType rows, const IndexType cols )
     return true;
 }
 
-const RealType* Vector::getData( void ) const
+const RealType* DenseMatrix::getData( void ) const
 {
     return data;
 }
 
-RealType* Vector::getData( void )
+RealType* DenseMatrix::getData( void )
 {
     return data;
 }
@@ -76,6 +76,12 @@ RealType DenseMatrix::operator() ( const IndexType row, const IndexType col ) co
     if( row >= rows || col >= cols )
         throw BadIndex("const DenseMatrix subscript out of bounds");
     return data[ getCols() * row + col ];
+}
+
+void DenseMatrix::setAllElements( const RealType & value )
+{
+    for( IndexType i = 0; i < rows * cols; i++ )
+        data[ i ] = value;
 }
 
 bool DenseMatrix::save( const std::string & file_name ) const

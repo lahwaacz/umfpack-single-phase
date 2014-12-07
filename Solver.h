@@ -47,7 +47,7 @@ private:
     void set_Ak( DenseMatrix & Ak, IndexType k );
 
 public:
-    Solver( void );
+//    Solver( void );
     ~Solver( void );
 
     void init( void );

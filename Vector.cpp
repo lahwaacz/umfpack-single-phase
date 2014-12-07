@@ -21,12 +21,6 @@ bool Vector::freeMemory( RealType* & data )
     return true;
 }
 
-// basic constructor
-Vector::Vector()
-    : size( 0 ), data( nullptr )
-{
-}
-
 Vector::~Vector()
 {
     freeMemory( data );
