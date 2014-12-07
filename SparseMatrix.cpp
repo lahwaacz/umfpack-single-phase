@@ -54,6 +54,10 @@ bool SparseMatrix::setSize( const IndexType rows, const IndexType cols )
     _values.clear();
     _column_indexes.clear();
     _row_indexes.clear();
+    if( Numeric ) {
+        umfpack_di_free_numeric( &Numeric );
+        Numeric = nullptr;
+    }
     
     // update size
     this->rows = rows;

@@ -32,7 +32,7 @@ private:
     Vector p;
     Vector ptrace;
     // main system matrix + right-hand-side
-    SparseMatrix* mainMatrix = nullptr;
+    SparseMatrix mainMatrix;
     Vector rhs;
     // auxiliary variables
     Vector alpha;
@@ -43,6 +43,7 @@ private:
     RealType dyx;
 
     // auxiliary methods
+    bool allocateVectors( void );
     RealType G_KE( IndexType cell_K, IndexType edge_E );
     void set_Ak( DenseMatrix & Ak, IndexType k );
 
@@ -50,9 +51,9 @@ public:
 //    Solver( void );
     ~Solver( void );
 
-    void init( void );
-    void update_main_system( void );
-    void update_p( void );
-    void run( void );
+    bool init( void );
+    bool update_main_system( void );
+    bool update_p( void );
+    bool run( void );
 };
 

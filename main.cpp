@@ -53,7 +53,6 @@ void test_mesh(void)
 int main( int argc, char** argv )
 {
     Solver s;
-    s.init();
-    s.run();
+    return ! s.run();
 }
 

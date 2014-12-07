@@ -10,14 +10,44 @@ Solver::~Solver( void )
     delete mesh;
 }
 
-void Solver::init( void )
+bool Solver::allocateVectors( void )
+{
+    bool status = true;
+
+    // parameters
+    status &= porosity.setSize( mesh->num_cells() );
+    status &=        F.setSize( mesh->num_cells() );
+    status &=       qN.setSize( mesh->num_edges() );
+    status &=       pD.setSize( mesh->num_edges() );
+
+    // main variables
+    status &=        p.setSize( mesh->num_cells() );
+    status &=   ptrace.setSize( mesh->num_edges() );
+    status &=      rhs.setSize( mesh->num_edges() );
+
+    // auxiliary variables
+    status &=    alpha.setSize( mesh->num_cells() );
+    status &=     beta.setSize( mesh->num_cells(), mesh->num_edges() );
+    status &= beta.reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
+    status &=   lambda.setSize( mesh->num_cells() );
+
+    return status;
+}
+
+bool Solver::init( void )
 {
     area_width = 0.01;
     area_height = 0.01;
     mesh_cols = 100;
     mesh_rows = 100;
     mesh = new RectangularMesh( area_width, area_height, mesh_rows, mesh_cols );
-    // TODO: load problem parameters from config file
+
+    if( ! allocateVectors() ) {
+        cerr << "Failed to allocate vectors." << endl;
+        return false;
+    }
+
+    // parameters
     tau = 0.1;
     max_iterations = 10;
     snapshot_period = 0.1;
@@ -28,34 +58,24 @@ void Solver::init( void )
     T = 300;
     permeability = 1e-3;
     viscosity = 18.6e-6;
-    porosity.setSize( mesh->num_cells() );
     porosity.setAllElements( 1e-10 );
-    F.setSize( mesh->num_cells() );
+    F.setAllElements( 0.0 );
 
-    // TODO: set boundary conditions
     // TODO: use sparse vectors
-    qN.setSize( mesh->num_edges() );
-    pD.setSize( mesh->num_edges() );
-    pD.setAllElements( 1e5 );
+    // boundary conditions
+    qN.setAllElements( 0.0 );
+    pD.setAllElements( 0.0 );
     // gradient on Dirichlet boundary
     for( IndexType i = 0; i < mesh_cols; i++ )
-        pD[ i ] += 1e4 / mesh_cols * (i + 1);
+        pD[ i ] = 1e5 + 1e4 / mesh_cols * (i + 1);
 
-    // TODO: set initial conditions
-    p.setSize( mesh->num_cells() );
+    // initial conditions
     p.setAllElements( 1e5 );
-    ptrace.setSize( mesh->num_edges() );
-
-    rhs.setSize( mesh->num_edges() );
-
-    // auxiliary variables
-    alpha.setSize( mesh->num_cells() );
-    beta.setSize( mesh->num_cells(), mesh->num_edges() );
-    beta.reserve( 4 * mesh->num_cells() );     // reserve memory to avoid reallocations
-    lambda.setSize( mesh->num_cells() );
+    ptrace.setAllElements( 1e5 );
 
     dxy = mesh->get_dx() / mesh->get_dy();
     dyx = mesh->get_dy() / mesh->get_dx();
+    return true;
 }
 
 RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
@@ -90,9 +110,15 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
     }
 }
 
-void Solver::update_main_system( void )
+bool Solver::update_main_system( void )
 {
     DenseMatrix** Ak = new DenseMatrix* [ mesh->num_cells() ];
+    if( ! Ak ) {
+        cerr << "Failed to allocate array for local matrices Ak." << endl;
+        return false;
+    }
+
+    bool status = true;
 
     // set auxiliary vectors + local matrices Ak on each element
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
@@ -105,11 +131,23 @@ void Solver::update_main_system( void )
             alpha[ cell_K ] += value;
         }
         lambda[ cell_K ] = porosity[ cell_K ] * M / R / T * mesh->measure_cell( cell_K ) / tau;
+
         Ak[ cell_K ] = new DenseMatrix();
-        // TODO: handle allocation errors
-        Ak[ cell_K ]->setSize( 4, 4 );
+        if( ! Ak[ cell_K ] ) {
+            cerr << "Failed to allocate local matrix Ak[ " << cell_K << " ]." << endl;
+            status = false;
+            break;
+        }
+        if( ! Ak[ cell_K ]->setSize( 4, 4 ) ) {
+            cerr << "Failed to set size of local matrix Ak[ " << cell_K << " ]." << endl;
+            status = false;
+            break;
+        }
         set_Ak( *Ak[ cell_K ], cell_K );
     }
+
+    if( ! status )
+        goto update_main_system_cleanup;
     
     // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
@@ -130,8 +168,8 @@ void Solver::update_main_system( void )
                     // set main matrix element
                     if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
                         // set main matrix element
-                        RealType value = mainMatrix->getElement( edge_E, edge_F );
-                        mainMatrix->setElement( edge_E, edge_F, value + A_KEF );
+                        RealType value = mainMatrix.getElement( edge_E, edge_F );
+                        mainMatrix.setElement( edge_E, edge_F, value + A_KEF );
                     }
                     else {
                         rhs[ edge_E ] -= A_KEF * pD[ edge_F ];
@@ -146,7 +184,7 @@ void Solver::update_main_system( void )
         }
         // Dirichlet boundary
         else {
-            mainMatrix->setElement( edge_E, edge_E, 1.0 );
+            mainMatrix.setElement( edge_E, edge_E, 1.0 );
             rhs[ edge_E ] = pD[ edge_E ];
         }
         // Neumann boundary
@@ -155,13 +193,16 @@ void Solver::update_main_system( void )
         }
     }
 
+update_main_system_cleanup:
     // release memory
     for( int k = 0; k < mesh->num_cells(); k++ )
         delete Ak[ k ];
     delete[] Ak;
+
+    return status;
 }
 
-void Solver::update_p( void )
+bool Solver::update_p( void )
 {
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
         p[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ];
@@ -171,11 +212,17 @@ void Solver::update_p( void )
         }
         p[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
     }
+    return true;
 }
 
-void Solver::run( void )
+bool Solver::run( void )
 {
-    bool status = true;
+    bool status = init();
+    if( ! status ) {
+        cerr << "Failed to init the solver." << endl;
+        return false;
+    }
+
     int snapshot_period_iter = snapshot_period / tau;
     string snapshot_prefix = string( "pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
@@ -193,21 +240,31 @@ void Solver::run( void )
 //            }
         }
 
-        mainMatrix = new SparseMatrix();
-        mainMatrix->setSize( mesh->num_edges(), mesh->num_edges() );
-        // reserve space to avoid reallocation
-        mainMatrix->reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
-
-        update_main_system();
-//        mainMatrix->print();
-//        p.print();
-
-        status = mainMatrix->linear_solve( ptrace, rhs );
-        if( status == false )
+        // setSize() clears the matrix
+        status = mainMatrix.setSize( mesh->num_edges(), mesh->num_edges() );
+        if( ! status ) {
+            cerr << "Failed to set size of the main matrix." << endl;
             break;
-        update_p();
+        }
 
-        delete mainMatrix;
+        // reserve space to avoid reallocation
+        status = mainMatrix.reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
+        if( ! status ) {
+            cerr << "Failed to reserve space for non-zero elements in the main matrix." << endl;
+            break;
+        }
+
+        status = update_main_system();
+        if( ! status ) {
+            cerr << "Failed to update the main system." << endl;
+        }
+
+        status = mainMatrix.linear_solve( ptrace, rhs );
+        if( ! status ) {
+            cerr << "Failed to solve the main system." << endl;
+            break;
+        }
+        update_p();
     }
 
     if( status ) {
@@ -222,5 +279,6 @@ void Solver::run( void )
 
         p.save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
     }
+    return status;
 }
 
