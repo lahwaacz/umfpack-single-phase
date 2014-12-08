@@ -14,4 +14,5 @@
 class SharedVector
     : public SharedArray, public Vector
 {
+    using SharedArray::SharedArray;
 };

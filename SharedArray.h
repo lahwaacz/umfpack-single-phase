@@ -33,7 +33,6 @@ public:
         this->size = size;
     };
 
-    // TODO: is it possible to disable allocateMemory() and freeMemory() instead?
     // disable Array's setSize() method which deletes old and allocates new data
     bool setSize( const IndexType size ) { return false; };
 };
