@@ -54,3 +54,21 @@ void test_shared::test_setsize_disabled( void )
     Vector & v = s;
     CPPUNIT_ASSERT_EQUAL( false, v.setSize( 10 ) );
 }
+
+void test_shared::test_pointers( void )
+{
+    // Test to ensure that base class has virtual destructor.
+    // Deleting object of polymorphic class which has non-virtual destructor
+    // might cause undefined behaviour [-Wdelete-non-virtual-dtor]
+    //
+    // See http://stackoverflow.com/a/461224/4180822
+
+    Vector* v = new Vector();
+    v->setSize( 10 );
+    SharedVector* s = new SharedVector();
+    s->bind( v->getData()[ 5 ], 5 );
+
+    delete s;
+    delete v;
+}
+

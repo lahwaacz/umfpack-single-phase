@@ -13,9 +13,11 @@ class test_shared
     CPPUNIT_TEST_SUITE( test_shared );
     CPPUNIT_TEST( test_bind );
     CPPUNIT_TEST( test_setsize_disabled );
+    CPPUNIT_TEST( test_pointers );
     CPPUNIT_TEST_SUITE_END();
 
 protected:
     void test_bind( void );
     void test_setsize_disabled( void );
+    void test_pointers( void );
 };

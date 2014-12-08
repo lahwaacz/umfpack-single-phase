@@ -16,7 +16,7 @@ protected:
     bool freeMemory( RealType* & data );
 
 public:
-    ~Array();
+    virtual ~Array();
 
     // set/get vector size
     virtual bool setSize( const IndexType size );
