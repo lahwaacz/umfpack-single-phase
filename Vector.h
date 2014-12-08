@@ -8,7 +8,7 @@
 
 class Vector
 {
-private:
+protected:
     IndexType size = 0;
     RealType* data = nullptr;
 
@@ -19,7 +19,7 @@ public:
     ~Vector();
 
     // set/get vector size
-    bool setSize( const IndexType size );
+    virtual bool setSize( const IndexType size );
     IndexType getSize( void ) const;
 
     // accessors to data storage
