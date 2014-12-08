@@ -54,4 +54,3 @@ void test_shared::test_setsize_disabled( void )
     Vector & v = s;
     CPPUNIT_ASSERT_EQUAL( false, v.setSize( 10 ) );
 }
-
