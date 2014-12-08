@@ -6,51 +6,14 @@
 
 using namespace std;
 
-// TODO: split into Array.h
-bool DenseMatrix::allocateMemory( RealType* & data, const IndexType & size )
-{
-    data = new RealType[ size ];
-    if( ! data )
-        return false;
-    return true;
-}
-
-// TODO: split into Array.h
-bool DenseMatrix::freeMemory( RealType* & data )
-{
-    delete[] data;
-    return true;
-}
-
-DenseMatrix::~DenseMatrix()
-{
-    freeMemory( data );
-}
-
 bool DenseMatrix::setSize( const IndexType rows, const IndexType cols )
 {
     if( rows < 0 || cols < 0 )
         throw BadIndex("Attempted to set negative matrix size");
     
-    if( data ) {
-        freeMemory( data );
-        data = nullptr;
-    }
     this->rows = rows;
     this->cols = cols;
-    if( ! allocateMemory( data, rows * cols ) )
-        return false;
-    return true;
-}
-
-const RealType* DenseMatrix::getData( void ) const
-{
-    return data;
-}
-
-RealType* DenseMatrix::getData( void )
-{
-    return data;
+    return Array::setSize( rows * cols );
 }
 
 bool DenseMatrix::setElement( const IndexType row, const IndexType col, const RealType & data )

@@ -1,11 +1,4 @@
-/**
- * @file    Matrix.cc
- * @brief   Implementace funkcí a metod pro třídu @ref Matrix.
- */
-
-#include "exceptions.h"
 #include "Matrix.h"
-
 
 Matrix::~Matrix( void )
 {

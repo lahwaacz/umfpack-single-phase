@@ -3,25 +3,20 @@
 #include <string>
 
 #include "Matrix.h"
+#include "Array.h"
 
 class DenseMatrix
-    : public Matrix
+    : public Matrix, private Array
 {
 private:
-    RealType* data = nullptr;
-
-    // TODO: split into Array.h
-    bool allocateMemory( RealType* & data, const IndexType & size );
-    bool freeMemory( RealType* & data );
+    // setSize( const IndexType ) must not be public
+    using Array::setSize;
 
 public:
-    ~DenseMatrix();
-
     virtual bool setSize( const IndexType rows, const IndexType cols );
 
-    // accessors to data storage
-    const RealType* getData( void ) const;
-    RealType* getData( void );
+    // expose protected member of Array
+    using Array::getData;
 
     // accessors to matrix elements
     virtual bool setElement( const IndexType row, const IndexType col, const RealType & data );

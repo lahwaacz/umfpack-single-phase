@@ -20,7 +20,7 @@ bool Array::freeMemory( RealType* & data )
     return true;
 }
 
-Array::~Array()
+Array::~Array( void )
 {
     freeMemory( data );
 }

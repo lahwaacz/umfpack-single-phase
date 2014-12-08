@@ -1,8 +1,3 @@
-/**
- * @file    Matrix.hh
- * @brief   Hlavičkový soubor pro třídu @ref Matrix.
- */
-
 #pragma once
 
 #include <iostream>
@@ -12,9 +7,7 @@
 typedef double RealType;
 typedef int IndexType;
 
-/**
- * @brief   Abstraktní třída pro matice @ref DenseMatrix a @ref SparseMatrix.
- */
+// interface class for DenseMatrix and SparseMatrix
 class Matrix
 {
 protected:
