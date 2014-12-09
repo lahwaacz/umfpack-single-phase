@@ -18,9 +18,7 @@ private:
     unsigned max_iterations;
     RealType snapshot_period;
     RealType grav_y;
-    RealType M;
-    RealType R;
-    RealType T;
+    RealType idealGasCoefficient;
     RealType permeability;
     RealType viscosity;
     Vector porosity;
@@ -29,7 +27,7 @@ private:
     Vector qN;
     Vector pD;
     // variables
-    Vector p;
+    Vector pressure;
     Vector ptrace;
     // main system matrix + right-hand-side
     SparseMatrix mainMatrix;

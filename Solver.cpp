@@ -21,7 +21,7 @@ bool Solver::allocateVectors( void )
     status &=       pD.setSize( mesh->num_edges() );
 
     // main variables
-    status &=        p.setSize( mesh->num_cells() );
+    status &= pressure.setSize( mesh->num_cells() );
     status &=   ptrace.setSize( mesh->num_edges() );
     status &=      rhs.setSize( mesh->num_edges() );
 
@@ -53,9 +53,10 @@ bool Solver::init( void )
     snapshot_period = 0.1;
     grav_y = -9.806;
 //    grav_y = 0.0;
-    M = 28.96;
-    R = 8.3144621;
-    T = 300;
+    const RealType M = 28.96;
+    const RealType R = 8.3144621;
+    const RealType T = 300;
+    idealGasCoefficient = M / R / T;
     permeability = 1e-3;
     viscosity = 18.6e-6;
     porosity.setAllElements( 1e-10 );
@@ -70,7 +71,7 @@ bool Solver::init( void )
         pD[ i ] = 1e5 + 1e4 / mesh_cols * (i + 1);
 
     // initial conditions
-    p.setAllElements( 1e5 );
+    pressure.setAllElements( 1e5 );
     ptrace.setAllElements( 1e5 );
 
     dxy = mesh->get_dx() / mesh->get_dy();
@@ -84,7 +85,7 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     if( mesh->is_vertical_edge( edge_E ) )
         return 0.0;
 
-    RealType value = 0.5 * p[ cell_K ] * M / R / T * grav_y * mesh->get_dy();
+    RealType value = 0.5 * pressure[ cell_K ] * idealGasCoefficient * grav_y * mesh->get_dy();
 
     // bottom
     if( mesh->get_edge_order( cell_K, edge_E ) == 1 )
@@ -112,9 +113,9 @@ void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
 
 bool Solver::update_main_system( void )
 {
-    DenseMatrix** Ak = new DenseMatrix* [ mesh->num_cells() ];
+    DenseMatrix* Ak = new DenseMatrix[ mesh->num_cells() ];
     if( ! Ak ) {
-        cerr << "Failed to allocate array for local matrices Ak." << endl;
+        cerr << "Failed to allocate array of local matrices Ak." << endl;
         return false;
     }
 
@@ -125,25 +126,19 @@ bool Solver::update_main_system( void )
         alpha[ cell_K ] = 0.0;
         for( int i = 0; i < 4; i++ ) {
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
-            RealType value = 6 * p[ cell_K ] * M / R / T * permeability / viscosity
+            RealType value = 6 * pressure[ cell_K ] * idealGasCoefficient * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
             beta.setElement( cell_K, edge_E, value );
             alpha[ cell_K ] += value;
         }
-        lambda[ cell_K ] = porosity[ cell_K ] * M / R / T * mesh->measure_cell( cell_K ) / tau;
+        lambda[ cell_K ] = porosity[ cell_K ] * idealGasCoefficient * mesh->measure_cell( cell_K ) / tau;
 
-        Ak[ cell_K ] = new DenseMatrix();
-        if( ! Ak[ cell_K ] ) {
-            cerr << "Failed to allocate local matrix Ak[ " << cell_K << " ]." << endl;
-            status = false;
-            break;
-        }
-        if( ! Ak[ cell_K ]->setSize( 4, 4 ) ) {
+        if( ! Ak[ cell_K ].setSize( 4, 4 ) ) {
             cerr << "Failed to set size of local matrix Ak[ " << cell_K << " ]." << endl;
             status = false;
             break;
         }
-        set_Ak( *Ak[ cell_K ], cell_K );
+        set_Ak( Ak[ cell_K ], cell_K );
     }
 
     if( ! status )
@@ -163,7 +158,7 @@ bool Solver::update_main_system( void )
 
                 for( IndexType j = 0; j < 4; j++ ) {
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
-                    RealType A_KEF = (*(Ak[ cell_K ]))( mesh->get_edge_order( cell_K, edge_E ), j );
+                    RealType A_KEF = Ak[ cell_K ]( mesh->get_edge_order( cell_K, edge_E ), j );
 
                     // set main matrix element
                     if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
@@ -179,7 +174,7 @@ bool Solver::update_main_system( void )
                 }
 
                 // right-hand-side
-                rhs[ edge_E ] += beta.getElement( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ] );
+                rhs[ edge_E ] += beta.getElement( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ] );
             }
         }
         // Dirichlet boundary
@@ -195,8 +190,6 @@ bool Solver::update_main_system( void )
 
 update_main_system_cleanup:
     // release memory
-    for( int k = 0; k < mesh->num_cells(); k++ )
-        delete Ak[ k ];
     delete[] Ak;
 
     return status;
@@ -205,12 +198,12 @@ update_main_system_cleanup:
 bool Solver::update_p( void )
 {
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        p[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * p[ cell_K ];
+        pressure[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ];
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            p[ cell_K ] += beta.getElement( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
+            pressure[ cell_K ] += beta.getElement( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
         }
-        p[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
+        pressure[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
     }
     return true;
 }
@@ -231,7 +224,7 @@ bool Solver::run( void )
 
         // make snapshot, starting with initial conditions
         if( i % snapshot_period_iter == 0 ) {
-            p.save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
+            pressure.save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
 //            for( IndexType i = 0; i < mesh_rows; i++ ) {
 //                for( IndexType j = 0; j < mesh_cols; j++ ) {
 //                    cout << p[ i * mesh_cols + j ] << " ";
@@ -257,6 +250,7 @@ bool Solver::run( void )
         status = update_main_system();
         if( ! status ) {
             cerr << "Failed to update the main system." << endl;
+            break;
         }
 
         status = mainMatrix.linear_solve( ptrace, rhs );
@@ -277,7 +271,7 @@ bool Solver::run( void )
 //            cout << endl;
 //        }
 
-        p.save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
+        pressure.save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
     }
     return status;
 }
