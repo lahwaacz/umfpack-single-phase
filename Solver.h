@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "RectangularMesh.h"
 #include "Vector.h"
 #include "DenseMatrix.h"
@@ -14,9 +16,9 @@ private:
     RealType area_height;
     IndexType mesh_cols;
     IndexType mesh_rows;
-    RealType tau;
-    unsigned max_iterations;
-    RealType snapshot_period;
+    float tau;
+    float final_time;
+    float snapshot_period;
     RealType grav_y;
     RealType idealGasCoefficient;
     RealType permeability;
@@ -44,6 +46,7 @@ private:
     bool allocateVectors( void );
     RealType G_KE( IndexType cell_K, IndexType edge_E );
     void set_Ak( DenseMatrix & Ak, IndexType k );
+    std::string getFormattedTime( const float & time );
 
 public:
 //    Solver( void );

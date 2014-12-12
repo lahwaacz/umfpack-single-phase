@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 
 #include "Solver.h"
 
@@ -36,8 +37,8 @@ bool Solver::allocateVectors( void )
 
 bool Solver::init( void )
 {
-    area_width = 0.01;
-    area_height = 0.01;
+    area_width = 10;
+    area_height = 10;
     mesh_cols = 100;
     mesh_rows = 100;
     mesh = new RectangularMesh( area_width, area_height, mesh_rows, mesh_cols );
@@ -49,17 +50,17 @@ bool Solver::init( void )
 
     // parameters
     tau = 0.1;
-    max_iterations = 10;
-    snapshot_period = 0.1;
+    final_time = 2.0;
+    snapshot_period = 1.0;
     grav_y = -9.806;
 //    grav_y = 0.0;
-    const RealType M = 28.96;
+    const RealType M = 28.96e-3;
     const RealType R = 8.3144621;
     const RealType T = 300;
     idealGasCoefficient = M / R / T;
-    permeability = 1e-3;
+    permeability = 1e-10;
     viscosity = 18.6e-6;
-    porosity.setAllElements( 1e-10 );
+    porosity.setAllElements( 0.4 );
     F.setAllElements( 0.0 );
 
     // TODO: use sparse vectors
@@ -68,7 +69,7 @@ bool Solver::init( void )
     pD.setAllElements( 0.0 );
     // gradient on Dirichlet boundary
     for( IndexType i = 0; i < mesh_cols; i++ )
-        pD[ i ] = 1e5 + 1e4 / mesh_cols * (i + 1);
+        pD[ i ] = 1e5 + 1e3 / mesh_cols * (i + 1);
 
     // initial conditions
     pressure.setAllElements( 1e5 );
@@ -208,6 +209,16 @@ bool Solver::update_p( void )
     return true;
 }
 
+string Solver::getFormattedTime( const float & time )
+{
+    stringstream ss;
+    ss.fill( '0' );
+    ss.width( 5 );
+    ss.precision( 1 );
+    ss << fixed << time;
+    return ss.str();
+}
+
 bool Solver::run( void )
 {
     bool status = init();
@@ -219,12 +230,12 @@ bool Solver::run( void )
     int snapshot_period_iter = snapshot_period / tau;
     string snapshot_prefix = string( "pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
-    for( unsigned i = 0; i < max_iterations; i++ ) {
+    for( unsigned i = 0; i * tau < final_time; i++ ) {
         cout << "Time: " << i * tau << endl;
 
         // make snapshot, starting with initial conditions
         if( i % snapshot_period_iter == 0 ) {
-            pressure.save( snapshot_prefix + to_string( i * tau ).substr( 0, 3 ) + ".dat" );
+            pressure.save( snapshot_prefix + getFormattedTime( i * tau ) + ".dat" );
 //            for( IndexType i = 0; i < mesh_rows; i++ ) {
 //                for( IndexType j = 0; j < mesh_cols; j++ ) {
 //                    cout << p[ i * mesh_cols + j ] << " ";
@@ -263,7 +274,7 @@ bool Solver::run( void )
 
     if( status ) {
         // print final p
-        cout << "Time: " << max_iterations * tau << endl;
+        cout << "Time: " << final_time << endl;
 //        for( IndexType i = 0; i < mesh_rows; i++ ) {
 //            for( IndexType j = 0; j < mesh_cols; j++ ) {
 //                cout << p[ i * mesh_cols + j ] << " ";
@@ -271,7 +282,7 @@ bool Solver::run( void )
 //            cout << endl;
 //        }
 
-        pressure.save( snapshot_prefix + to_string( max_iterations * tau ).substr( 0, 3 ) + ".dat" );
+        pressure.save( snapshot_prefix + getFormattedTime( final_time ) + ".dat" );
     }
     return status;
 }
