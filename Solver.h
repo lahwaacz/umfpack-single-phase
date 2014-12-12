@@ -45,7 +45,6 @@ private:
     // auxiliary methods
     bool allocateVectors( void );
     RealType G_KE( IndexType cell_K, IndexType edge_E );
-    void set_Ak( DenseMatrix & Ak, IndexType k );
     std::string getFormattedTime( const float & time );
 
 public:

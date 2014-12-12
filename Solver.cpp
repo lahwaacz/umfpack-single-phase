@@ -96,32 +96,8 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     return -value;
 }
 
-void Solver::set_Ak( DenseMatrix & Ak, IndexType k )
-{
-    for( int i = 0; i < 4; i++ ) {
-        for( int j = 0; j < 4; j++ ) {
-            IndexType edge_E = mesh->edge_for_cell( k, i );
-            IndexType edge_F = mesh->edge_for_cell( k, j );
-
-            Ak( i, j ) = - beta.getElement( k, edge_E ) * beta.getElement( k, edge_F ) / ( lambda[ k ] + alpha[ k ] );
-
-            // diagonal of b_k
-            if( i == j )
-                Ak( i, j ) += beta.getElement( k, edge_E );
-        }
-    }
-}
-
 bool Solver::update_main_system( void )
 {
-    DenseMatrix* Ak = new DenseMatrix[ mesh->num_cells() ];
-    if( ! Ak ) {
-        cerr << "Failed to allocate array of local matrices Ak." << endl;
-        return false;
-    }
-
-    bool status = true;
-
     // set auxiliary vectors + local matrices Ak on each element
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
         alpha[ cell_K ] = 0.0;
@@ -133,18 +109,8 @@ bool Solver::update_main_system( void )
             alpha[ cell_K ] += value;
         }
         lambda[ cell_K ] = porosity[ cell_K ] * idealGasCoefficient * mesh->measure_cell( cell_K ) / tau;
-
-        if( ! Ak[ cell_K ].setSize( 4, 4 ) ) {
-            cerr << "Failed to set size of local matrix Ak[ " << cell_K << " ]." << endl;
-            status = false;
-            break;
-        }
-        set_Ak( Ak[ cell_K ], cell_K );
     }
 
-    if( ! status )
-        goto update_main_system_cleanup;
-    
     // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
         rhs[ edge_E ] = 0.0;
@@ -159,9 +125,11 @@ bool Solver::update_main_system( void )
 
                 for( IndexType j = 0; j < 4; j++ ) {
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
-                    RealType A_KEF = Ak[ cell_K ]( mesh->get_edge_order( cell_K, edge_E ), j );
 
-                    // set main matrix element
+                    RealType A_KEF = - beta.getElement( cell_K, edge_E ) * beta.getElement( cell_K, edge_F ) / ( lambda[ cell_K ] + alpha[ cell_K ] );
+                    if( edge_E == edge_F )
+                        A_KEF += beta.getElement( cell_K, edge_E );
+
                     if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
                         // set main matrix element
                         RealType value = mainMatrix.getElement( edge_E, edge_F );
@@ -189,11 +157,7 @@ bool Solver::update_main_system( void )
         }
     }
 
-update_main_system_cleanup:
-    // release memory
-    delete[] Ak;
-
-    return status;
+    return true;
 }
 
 bool Solver::update_p( void )
