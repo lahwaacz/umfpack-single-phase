@@ -31,7 +31,7 @@ def plot_mesh( fig, ax, fname ):
     img = ax.imshow( values,
                       interpolation="nearest",
                       cmap=plt.get_cmap( "rainbow" ),
-                      origin="upper",
+                      origin="lower",
                       aspect=aspect )
 
     # plot colorbar

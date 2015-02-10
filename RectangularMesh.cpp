@@ -45,8 +45,8 @@ bool RectangularMesh::is_outer_edge( int edge ) const
 /*
  * int cell - cell index
  * int edgeOrder - for which edge the index should be returned:
- *          0 - top
- *          1 - bottom
+ *          0 - bottom
+ *          1 - top
  *          2 - left
  *          3 - right
  */
@@ -56,7 +56,7 @@ int RectangularMesh::edge_for_cell( int cell, int edgeOrder ) const
     int row = cell / _cols;
     int col = cell % _cols;
 
-    // increment for right/bottom edge
+    // increment for right/top edge
     if( edgeOrder == 1 )
         row++;
     if( edgeOrder == 3 )
@@ -72,8 +72,8 @@ int RectangularMesh::edge_for_cell( int cell, int edgeOrder ) const
 /*
  * int edge - edge index
  * int cellOrder - for which adjacent cell the index should be returned:
- *          0 - top/left (horizontal/vertical edge)
- *          1 - bottom/right
+ *          0 - bottom/left (horizontal/vertical edge)
+ *          1 - top/right
  * returns: int >= 0 ... valid cell index
  *          int  < 0 ... error for outer edge
  */
@@ -113,8 +113,8 @@ int RectangularMesh::cell_for_edge( int edge, int cellOrder ) const
 
 /*
  * For `edge` adjacent to `cell`, return:
- *      0 - top edge
- *      1 - bottom edge
+ *      0 - bottom edge
+ *      1 - top edge
  *      2 - left edge
  *      3 - right edge
  *      -1 - edge not adjacent to cell
@@ -135,10 +135,8 @@ double RectangularMesh::measure_cell( int cell ) const
 
 double RectangularMesh::measure_edge( int edge ) const
 {
-    // horizontal edge
-    if( edge < (_rows + 1) * _cols )
+    if( is_horizontal_edge( edge ) )
         return _delta_x;
-    // vertical edge
     return _delta_y;
 }
 
@@ -163,10 +161,10 @@ bool RectangularMesh::is_dirichlet_boundary( int edge ) const
 {
     if( ! is_outer_edge( edge ) )
         return false;
-    // top border
+    // bottom border
     if( edge < _cols )
         return true;
-//    // bottom border
+//    // top border
 //    if( edge > _rows * _cols && edge <= (_rows + 1) * _cols )
 //        return true;
     return false;
