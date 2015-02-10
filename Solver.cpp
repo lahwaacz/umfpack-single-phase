@@ -68,8 +68,20 @@ bool Solver::init( void )
     qN.setAllElements( 0.0 );
     pD.setAllElements( 0.0 );
     // gradient on Dirichlet boundary
-    for( IndexType i = 0; i < mesh_cols; i++ )
+    for( IndexType i = mesh_cols * mesh_rows; i < mesh_cols * (mesh_rows + 1); i++ ) {
         pD[ i ] = 1e5 + 1e3 / mesh_cols * (i + 1);
+    }
+
+//    // constant pressure on left border
+//    for( IndexType i = (mesh_rows + 1) * mesh_cols; i < mesh->num_edges(); i++ ) {
+//        if( i % (mesh_cols + 1) == 0 )
+//            pD[ i ] = 1e5;
+//    }
+//    // constant (higher) pressure on right border
+//    for( IndexType i = (mesh_rows + 1) * mesh_cols; i < mesh->num_edges(); i++ ) {
+//        if( i % (mesh_cols + 1) == mesh_cols )
+//            pD[ i ] = 1.01e5;
+//    }
 
     // initial conditions
     pressure.setAllElements( 1e5 );

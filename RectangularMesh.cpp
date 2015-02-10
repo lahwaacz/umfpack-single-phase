@@ -161,11 +161,17 @@ bool RectangularMesh::is_dirichlet_boundary( int edge ) const
 {
     if( ! is_outer_edge( edge ) )
         return false;
-    // bottom border
-    if( edge < _cols )
+//    // bottom border
+//    if( edge < _cols )
+//        return true;
+    // top border
+    if( edge >= _rows * _cols && edge < (_rows + 1) * _cols )
         return true;
-//    // top border
-//    if( edge > _rows * _cols && edge <= (_rows + 1) * _cols )
+
+//    // left border
+//    if( is_vertical_edge( edge ) && edge % (_cols + 1) == 0 )
+//        return true;
+//    if( is_vertical_edge( edge ) && edge % (_cols + 1) == _cols )
 //        return true;
     return false;
 }
