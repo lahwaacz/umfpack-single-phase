@@ -14,9 +14,23 @@ protected:
 
     bool allocateMemory( RealType* & data, const IndexType & size );
     bool freeMemory( RealType* & data );
+    bool copyMemory( const RealType* source, RealType* destination, const IndexType size );
 
 public:
+    Array( void );
+    Array( const IndexType size );
+    // copy constructor
+    Array( const Array & array );
+    // move constructor
+    Array( Array && array ) noexcept;
+
+    // destructor
     virtual ~Array( void );
+
+    // copy assignment
+    Array & operator=( const Array & array );
+    // move assignment
+    Array & operator=( Array && array ) noexcept;
 
     // set/get vector size
     virtual bool setSize( const IndexType size );

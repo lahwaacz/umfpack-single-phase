@@ -20,9 +20,61 @@ bool Array::freeMemory( RealType* & data )
     return true;
 }
 
+bool Array::copyMemory( const RealType* source, RealType* destination, const IndexType size )
+{
+    // TODO: memcpy is probably faster
+    for( IndexType i = 0; i < size; i++ )
+        destination[ i ] = source[ i ];
+    return true;
+}
+
+Array::Array( void )
+{
+}
+
+Array::Array( const IndexType size )
+{
+    // TODO: handle allocation errors?
+    setSize( size );
+}
+
+// copy constructor
+Array::Array( const Array & array )
+{
+    // TODO: handle allocation errors?
+    setSize( array.size );
+    copyMemory( array.data, data, size );
+}
+
+// move constructor
+Array::Array( Array && array ) noexcept
+{
+    (*this) = std::move( array );
+}
+
 Array::~Array( void )
 {
     freeMemory( data );
+}
+
+// copy assignment
+Array & Array::operator=( const Array & array )
+{
+    if( size != array.getSize() )
+        throw BadArraySize("Array.operator=(): the assigned-to object needs to have the same size as the assigned-from object.");
+
+    copyMemory( array.getData(), data, size );
+    return *this;
+}
+
+// move assignment
+Array & Array::operator=( Array && array ) noexcept
+{
+    // The state of the src object after the move must be valid but indeterminate.
+    // Easiest solution is to swap the states of the two objects.
+    std::swap( this->size, array.size );
+    std::swap( this->data, array.data );
+    return *this;
 }
 
 bool Array::setSize( const IndexType size )

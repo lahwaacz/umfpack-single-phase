@@ -9,53 +9,6 @@ using namespace std;
 CPPUNIT_TEST_SUITE_REGISTRATION( test_dense );
 
 
-void test_dense::test_vector_creation( void )
-{
-    unsigned rows = 4;
-
-    Vector v;
-    v.setSize( rows );
-    v.setAllElements( 0.0 );
-    for( unsigned i = 0; i < rows; i++ )
-        CPPUNIT_ASSERT_EQUAL( 0.0, v[ i ] );
-}
-
-void test_dense::test_vector_save_load( void )
-{
-    string fname("test-vector.dat");
-    unsigned rows = 4;
-
-    Vector v;
-    v.setSize( rows );
-    v[ 0 ] = 1.1;
-    v[ 1 ] = 2.2;
-    v[ 2 ] = 3.3;
-    v[ 3 ] = 4.4;
-    v.save( fname );
-
-    // test created file
-    ifstream f( fname.c_str() );
-    stringstream buffer;
-    buffer << f.rdbuf();
-    CPPUNIT_ASSERT_EQUAL(
-            string(
-"# saved vector:\n"
-"# <row index> <value>\n"
-"0 1.1\n"
-"1 2.2\n"
-"2 3.3\n"
-"3 4.4\n"),
-            buffer.str() );
-
-    // test file loading
-    Vector b;
-    b.setSize( rows );
-    b.load( fname );
-    for( unsigned i = 0; i < rows; i++ ) {
-        CPPUNIT_ASSERT_EQUAL( v[ i ], b[ i ] );
-    }
-}
-
 void test_dense::test_matrix_creation( void )
 {
     unsigned rows = 4;

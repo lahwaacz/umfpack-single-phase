@@ -16,3 +16,10 @@ class BadIndex : public ExceptionMessage
 public:
     BadIndex( const char* message ) : ExceptionMessage( message ) {};
 };
+
+class BadArraySize : public ExceptionMessage
+{
+public:
+    BadArraySize( const char* message ) : ExceptionMessage( message ) {};
+};
+
