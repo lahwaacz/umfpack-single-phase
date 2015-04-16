@@ -26,7 +26,8 @@ private:
     void _delete( IndexType i );    // smazat i-tý prvek z _values a _column_indexes
     void _insert( IndexType i, IndexType column, RealType data );    // vložit data na i-tou pozici do _values, nastavit column v _column_indexes
 
-    // UMFPACK Numeric object
+    // UMFPACK objects
+    void* Symbolic = nullptr;
     void* Numeric = nullptr;
 
 public:
@@ -43,7 +44,6 @@ public:
     virtual bool load( const std::string & filename );
 
     // solve linear system with UMFPACK
-    bool factorize( void );
     bool linear_solve( Vector & x, Vector & rhs );
 
     // reserve space for 'n' non-zero elements

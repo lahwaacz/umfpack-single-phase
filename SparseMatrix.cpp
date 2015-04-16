@@ -40,6 +40,8 @@ SparseMatrix::_insert( IndexType i, IndexType column, RealType data )
 
 SparseMatrix::~SparseMatrix( void )
 {
+    if( Symbolic )
+        umfpack_di_free_symbolic( &Symbolic );
     if( Numeric )
         umfpack_di_free_numeric( &Numeric );
 }
@@ -54,6 +56,10 @@ bool SparseMatrix::setSize( const IndexType rows, const IndexType cols )
     _values.clear();
     _column_indexes.clear();
     _row_indexes.clear();
+    if( Symbolic ) {
+        umfpack_di_free_symbolic( &Symbolic );
+        Symbolic = nullptr;
+    }
     if( Numeric ) {
         umfpack_di_free_numeric( &Numeric );
         Numeric = nullptr;
@@ -275,31 +281,6 @@ bool SparseMatrix::load( const string & filename )
     return true;
 }
 
-bool SparseMatrix::factorize( void )
-{
-    void* Symbolic = nullptr;
-    int status = UMFPACK_OK;
-    
-    // symbolic reordering of the sparse matrix
-    // TODO: symbolic reordering can be reused for different matrices
-    status = umfpack_di_symbolic( rows, rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, nullptr, nullptr );
-
-    if( status != UMFPACK_OK ) {
-        umfpack_di_report_status( nullptr, status );
-        return false;
-    }
-
-    // factorization
-    status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, nullptr, nullptr );
-    umfpack_di_free_symbolic( &Symbolic );
-
-    if( status != UMFPACK_OK ) {
-        umfpack_di_report_status( nullptr, status );
-        return false;
-    }
-    return true;
-}
-
 // solve linear system  A*x=rhs using UMFPACK
 bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
 {
@@ -308,11 +289,32 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     if( x.getSize() != rows || rhs.getSize() != rows )
         throw string("passed vectors don't match matrix dimensions");
 
-    // factorize
-    if( Numeric == nullptr ) {
-        bool status = factorize();
-        if( status == false )
+    int status = UMFPACK_OK;
+    double Control[ UMFPACK_CONTROL ];
+    double Info[ UMFPACK_INFO ];
+//    Control[ UMFPACK_PRL ] = 2;
+
+    // symbolic reordering of the sparse matrix
+    // (only needed when we're going to do numeric factorization)
+    if( Symbolic == nullptr && Numeric == nullptr ) {
+        status = umfpack_di_symbolic( rows, rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, Control, Info );
+        umfpack_di_report_status( Control, status );
+//        umfpack_di_report_control( Control );
+//        umfpack_di_report_info( Control, Info );
+        if( status != UMFPACK_OK ) {
             return false;
+        }
+    }
+
+    // numeric factorization
+    if( Numeric == nullptr ) {
+        status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, Control, Info );
+        umfpack_di_report_status( Control, status );
+//        umfpack_di_report_control( Control );
+//        umfpack_di_report_info( Control, Info );
+        if( status != UMFPACK_OK ) {
+            return false;
+        }
     }
 
     // umfpack expects Compressed Sparse Column format, we have Compressed Sparse Row
@@ -320,14 +322,15 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     int sys = UMFPACK_Aat;
 
     // solve with specified right-hand-side
-    int status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, nullptr, nullptr );
-
-    if( status == UMFPACK_OK )
-        return true;
-    else {
-        umfpack_di_report_status( nullptr, status );
+    status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, Control, Info );
+    umfpack_di_report_status( Control, status );
+//    umfpack_di_report_control( Control );
+//    umfpack_di_report_info( Control, Info );
+    if( status != UMFPACK_OK ) {
         return false;
     }
+
+    return true;
 }
 
 bool SparseMatrix::reserve( unsigned n )

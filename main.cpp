@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <limits>
 
 #include "DenseMatrix.h"
 #include "SparseMatrix.h"
@@ -53,6 +55,29 @@ void test_mesh(void)
 int main( int argc, char** argv )
 {
     Solver s;
-    return ! s.run();
+    bool status = s.run();
+
+    ifstream meminfo("/proc/self/status");
+    if (meminfo.fail()) {
+        cerr << "error: unable to open /proc/self/status" << endl;
+        return EXIT_FAILURE;
+    }
+
+    string desc;
+    unsigned value;
+    while (meminfo.good()) {
+        // extract description (first column)
+        meminfo >> desc;
+
+        if( desc == "VmHWM:" ) {
+            meminfo >> value;
+            cout << "Peak memory usage: " << value / 1024 << " MiB" << endl;
+        }
+
+        // ignore the rest of irrelevant lines
+        meminfo.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+
+    return !status;
 }
 
