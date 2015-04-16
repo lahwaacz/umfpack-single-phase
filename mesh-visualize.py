@@ -30,9 +30,12 @@ def plot_mesh( fig, ax, fname ):
     # plot mesh values
     img = ax.imshow( values,
                       interpolation="nearest",
-                      cmap=plt.get_cmap( "rainbow" ),
+#                      cmap=plt.get_cmap( "rainbow" ),
                       origin="lower",
                       aspect=aspect )
+
+    # NOTE: fixed colorbar limits so that all figures use the same scale
+    img.set_clim( vmin=1e5, vmax=1e5+1e3 )
 
     # plot colorbar
     divider = make_axes_locatable( ax )
@@ -51,7 +54,7 @@ def update_plot( num ):
     img.set_data( values )
 
     # set limits to update colorbar
-    img.set_clim( [values.min(), values.max()] )
+#    img.set_clim( [values.min(), values.max()] )
 
     plt.draw()
 
@@ -74,24 +77,24 @@ class Index:
 
 
 # save plots as png files
-#for filename in filenames:
-#    out = os.path.splitext(filename)[0] + ".png"
-#    print( "Plotting %s..." % out )
-#    fig, ax = plt.subplots( 1, 1 )
-#    plot_mesh( fig, ax, filename )
-#    fig.savefig( out )
-#    plt.close()
+for filename in filenames:
+    out = os.path.splitext(filename)[0] + ".png"
+    print( "Plotting %s..." % out )
+    fig, ax = plt.subplots( 1, 1 )
+    plot_mesh( fig, ax, filename )
+    fig.savefig( out )
+    plt.close()
 
 # "interactive" output
-fig, ax = plt.subplots( 1, 1 )
-img, colorbar = plot_mesh( fig, ax, filenames[ 0 ] )
+#fig, ax = plt.subplots( 1, 1 )
+#img, colorbar = plot_mesh( fig, ax, filenames[ 0 ] )
 
-callback = Index( len( filenames ), update_plot )
-axprev = plt.axes( [0.40, 0.05, 0.1, 0.075] )
-axnext = plt.axes( [0.55, 0.05, 0.1, 0.075] )
-bnext = Button( axnext, "Next" )
-bnext.on_clicked( callback.next )
-bprev = Button( axprev, "Previous" )
-bprev.on_clicked( callback.prev )
+#callback = Index( len( filenames ), update_plot )
+#axprev = plt.axes( [0.40, 0.05, 0.1, 0.075] )
+#axnext = plt.axes( [0.55, 0.05, 0.1, 0.075] )
+#bnext = Button( axnext, "Next" )
+#bnext.on_clicked( callback.next )
+#bprev = Button( axprev, "Previous" )
+#bprev.on_clicked( callback.prev )
 
-plt.show()
+#plt.show()
