@@ -298,10 +298,11 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     // (only needed when we're going to do numeric factorization)
     if( Symbolic == nullptr && Numeric == nullptr ) {
         status = umfpack_di_symbolic( rows, rows, &_row_indexes[0], &_column_indexes[0], &_values[0], &Symbolic, Control, Info );
-        umfpack_di_report_status( Control, status );
-//        umfpack_di_report_control( Control );
-//        umfpack_di_report_info( Control, Info );
         if( status != UMFPACK_OK ) {
+            cerr << "error: symbolic reordering failed" << endl;
+            umfpack_di_report_status( Control, status );
+//           umfpack_di_report_control( Control );
+//           umfpack_di_report_info( Control, Info );
             return false;
         }
     }
@@ -309,10 +310,11 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
     // numeric factorization
     if( Numeric == nullptr ) {
         status = umfpack_di_numeric( &_row_indexes[0], &_column_indexes[0], &_values[0], Symbolic, &Numeric, Control, Info );
-        umfpack_di_report_status( Control, status );
-//        umfpack_di_report_control( Control );
-//        umfpack_di_report_info( Control, Info );
         if( status != UMFPACK_OK ) {
+            cerr << "error: numeric factorization failed" << endl;
+            umfpack_di_report_status( Control, status );
+//           umfpack_di_report_control( Control );
+//           umfpack_di_report_info( Control, Info );
             return false;
         }
     }
@@ -323,12 +325,15 @@ bool SparseMatrix::linear_solve( Vector & x, Vector & rhs )
 
     // solve with specified right-hand-side
     status = umfpack_di_solve( sys, &_row_indexes[0], &_column_indexes[0], &_values[0], &x[0], &rhs[0], Numeric, Control, Info );
-    umfpack_di_report_status( Control, status );
-//    umfpack_di_report_control( Control );
-//    umfpack_di_report_info( Control, Info );
     if( status != UMFPACK_OK ) {
+        cerr << "error: umfpack_di_solve failed" << endl;
+            umfpack_di_report_status( Control, status );
+//           umfpack_di_report_control( Control );
+//           umfpack_di_report_info( Control, Info );
         return false;
     }
+
+//    umfpack_di_report_info( Control, Info );
 
     return true;
 }
