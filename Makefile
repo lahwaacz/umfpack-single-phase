@@ -1,7 +1,7 @@
 CXX := $(CXX) -std=c++11
 CC := $(CXX)
 
-base_CXXFLAGS = -Wall -Wextra -pedantic -O3 -g
+base_CXXFLAGS = -Wall -Wextra -Woverloaded-virtual -pedantic -O3 -g -rdynamic
 base_LIBS = -lm -lumfpack
 
 #pkgs =
@@ -13,7 +13,7 @@ CXXFLAGS := $(base_CXXFLAGS) $(pkgs_CXXFLAGS) $(CXXFLAGS)
 #LDFLAGS += -v
 LDLIBS := $(base_LIBS) $(pkgs_LIBS)
 
-SRC = main.cpp Matrix.cpp DenseMatrix.cpp SparseMatrix.cpp Vector.cpp SOR.cpp RectangularMesh.cpp Solver.cpp
+SRC = main.cpp Array.cpp Vector.cpp Matrix.cpp DenseMatrix.cpp SparseMatrix.cpp SOR.cpp RectangularMesh.cpp Solver.cpp
 DIST_TARBALL = bak-$(shell git describe --always | sed 's|-|.|g').tar.gz
 
 export

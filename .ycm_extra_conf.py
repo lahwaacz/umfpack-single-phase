@@ -3,7 +3,7 @@ flags = [
     "-Wall",
     "-Wextra",
     "-pedantic",
-    "-O2",
+    "-Og",
     "-g",
     "-lm",
 ]
