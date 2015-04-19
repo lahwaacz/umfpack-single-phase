@@ -9,12 +9,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from scipy import interpolate
 
-width = 100
-height = 100
-cols = 50
-rows = 50
-#filenames = sorted( glob.glob( "out/pressure-vect-gravity-%dx%d-*.dat" % (rows, cols) ) )
-filenames = sorted( glob.glob( "out/pressure-vect-gravity-test-%dx%d-*.dat" % (rows, cols) ) )
+width = 10
+height = 10
+cols = 100
+rows = 100
+filenames = sorted( glob.glob( "out/pressure-vect-gravity-%dx%d-*.dat" % (rows, cols) ) )
 
 def load_values( fname ):
     # load vector, reshape to matrix form

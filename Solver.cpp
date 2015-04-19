@@ -50,7 +50,7 @@ bool Solver::init( void )
 
     // parameters
     tau = 0.1;
-    final_time = 2.0;
+    final_time = 30.0;
     snapshot_period = 1.0;
     grav_y = -9.806;
 //    grav_y = 0.0;
@@ -99,7 +99,7 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     if( mesh->is_vertical_edge( edge_E ) )
         return 0.0;
 
-    RealType value = 0.5 * pressure[ cell_K ] * idealGasCoefficient * grav_y * mesh->get_dy();
+    RealType value = 0.5 * idealGasCoefficient * grav_y * mesh->get_dy();
 
     // bottom
     if( mesh->get_edge_order( cell_K, edge_E ) == 1 )
@@ -109,21 +109,25 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     return -value;
 }
 
-bool Solver::update_main_system( void )
+bool Solver::update_auxiliary_vectors( void )
 {
-    // set auxiliary vectors + local matrices Ak on each element
+    // set auxiliary vectors
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
         alpha[ cell_K ] = 0.0;
         for( int i = 0; i < 4; i++ ) {
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
-            RealType value = 6 * pressure[ cell_K ] * idealGasCoefficient * permeability / viscosity
+            RealType value = 6 * idealGasCoefficient * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
             beta.setElement( cell_K, edge_E, value );
             alpha[ cell_K ] += value;
         }
         lambda[ cell_K ] = porosity[ cell_K ] * idealGasCoefficient * mesh->measure_cell( cell_K ) / tau;
     }
+    return true;
+}
 
+bool Solver::update_main_system( void )
+{
     // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
         rhs[ edge_E ] = 0.0;
@@ -139,9 +143,9 @@ bool Solver::update_main_system( void )
                 for( IndexType j = 0; j < 4; j++ ) {
                     IndexType edge_F = mesh->edge_for_cell( cell_K, j );
 
-                    RealType A_KEF = - beta.getElement( cell_K, edge_E ) * beta.getElement( cell_K, edge_F ) / ( lambda[ cell_K ] + alpha[ cell_K ] );
+                    RealType A_KEF = - beta.getElement( cell_K, edge_E ) * pressure[ cell_K ] * beta.getElement( cell_K, edge_F ) * pressure[ cell_K ] / ( lambda[ cell_K ] + alpha[ cell_K ] * pressure[ cell_K ] );
                     if( edge_E == edge_F )
-                        A_KEF += beta.getElement( cell_K, edge_E );
+                        A_KEF += beta.getElement( cell_K, edge_E ) * pressure[ cell_K ];
 
                     if( ! mesh->is_dirichlet_boundary( edge_F ) ) {
                         // set main matrix element
@@ -152,11 +156,11 @@ bool Solver::update_main_system( void )
                         rhs[ edge_E ] -= A_KEF * pD[ edge_F ];
                     }
                     // right hand side
-                    rhs[ edge_E ] += A_KEF * G_KE( cell_K, edge_F );
+                    rhs[ edge_E ] += A_KEF * G_KE( cell_K, edge_F ) * pressure[ cell_K ];
                 }
 
                 // right-hand-side
-                rhs[ edge_E ] += beta.getElement( cell_K, edge_E ) / ( lambda[ cell_K ] + alpha[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ] );
+                rhs[ edge_E ] += beta.getElement( cell_K, edge_E ) * pressure[ cell_K ] / ( lambda[ cell_K ] + alpha[ cell_K ] * pressure[ cell_K ] ) * ( F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ] );
             }
         }
         // Dirichlet boundary
@@ -169,19 +173,21 @@ bool Solver::update_main_system( void )
             rhs[ edge_E ] += qN[ edge_E ];
         }
     }
-
     return true;
 }
 
 bool Solver::update_p( void )
 {
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
-        pressure[ cell_K ] = F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ];
+        RealType p = 0.0;
         for( IndexType i = 0; i < mesh->edges_per_cell(); i++ ) {
             IndexType edge_F = mesh->edge_for_cell( cell_K, i );
-            pressure[ cell_K ] += beta.getElement( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) );
+            p += beta.getElement( cell_K, edge_F ) * ( ptrace[ edge_F ] - G_KE( cell_K, edge_F ) * pressure[ cell_K ] );
         }
-        pressure[ cell_K ] /= lambda[ cell_K ] + alpha[ cell_K ];
+        p *= pressure[ cell_K ];
+        p += F[ cell_K ] + lambda[ cell_K ] * pressure[ cell_K ];
+        p /= lambda[ cell_K ] + alpha[ cell_K ] * pressure[ cell_K ];
+        pressure[ cell_K ] = p;
     }
     return true;
 }
@@ -205,7 +211,9 @@ bool Solver::run( void )
     }
 
     int snapshot_period_iter = snapshot_period / tau;
-    string snapshot_prefix = string( "pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
+    string snapshot_prefix = string( "out/pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
+
+    update_auxiliary_vectors();
 
     for( unsigned i = 0; i * tau < final_time; i++ ) {
         cout << "Time: " << i * tau << endl;
