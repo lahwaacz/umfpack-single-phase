@@ -50,8 +50,9 @@ bool Solver::init( void )
 
     // parameters
     tau = 0.1;
-    final_time = 30.0;
     snapshot_period = 1.0;
+    initial_time = 0.0;
+    final_time = 30.0;
     grav_y = -9.806;
 //    grav_y = 0.0;
     const RealType M = 28.96e-3;
@@ -192,13 +193,14 @@ bool Solver::update_p( void )
     return true;
 }
 
-string Solver::getFormattedTime( const float & time )
+template< typename T >
+string Solver::pad_number( const T & number )
 {
     stringstream ss;
     ss.fill( '0' );
     ss.width( 5 );
     ss.precision( 1 );
-    ss << fixed << time;
+    ss << fixed << number;
     return ss.str();
 }
 
@@ -215,19 +217,15 @@ bool Solver::run( void )
 
     update_auxiliary_vectors();
 
-    for( unsigned i = 0; i * tau < final_time; i++ ) {
-        cout << "Time: " << i * tau << endl;
+    // initialize
+    IndexType step = 0;
+    RealType time = initial_time;
 
-        // make snapshot, starting with initial conditions
-        if( i % snapshot_period_iter == 0 ) {
-            pressure.save( snapshot_prefix + getFormattedTime( i * tau ) + ".dat" );
-//            for( IndexType i = 0; i < mesh_rows; i++ ) {
-//                for( IndexType j = 0; j < mesh_cols; j++ ) {
-//                    cout << p[ i * mesh_cols + j ] << " ";
-//                }
-//                cout << endl;
-//            }
-        }
+    // print initial condition
+    pressure.save( snapshot_prefix + pad_number( step ) + ".dat" );
+
+    while( time < final_time ) {
+        cout << "Time: " << time << endl;
 
         // setSize() clears the matrix
         status = mainMatrix.setSize( mesh->num_edges(), mesh->num_edges() );
@@ -255,19 +253,19 @@ bool Solver::run( void )
             break;
         }
         update_p();
+
+        // go to next time step
+        step++;
+        time += tau;
+
+        // make snapshot, starting with initial conditions
+        if( step % snapshot_period_iter == 0 ) {
+            pressure.save( snapshot_prefix + pad_number( step / snapshot_period_iter ) + ".dat" );
+        }
+
     }
 
     if( status ) {
-        // print final p
-        cout << "Time: " << final_time << endl;
-//        for( IndexType i = 0; i < mesh_rows; i++ ) {
-//            for( IndexType j = 0; j < mesh_cols; j++ ) {
-//                cout << p[ i * mesh_cols + j ] << " ";
-//            }
-//            cout << endl;
-//        }
-
-        pressure.save( snapshot_prefix + getFormattedTime( final_time ) + ".dat" );
     }
     return status;
 }

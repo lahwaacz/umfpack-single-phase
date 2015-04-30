@@ -17,8 +17,9 @@ private:
     IndexType mesh_cols;
     IndexType mesh_rows;
     float tau;
-    float final_time;
     float snapshot_period;
+    float initial_time;
+    float final_time;
     RealType grav_y;
     RealType idealGasCoefficient;
     RealType permeability;
@@ -45,7 +46,9 @@ private:
     // auxiliary methods
     bool allocateVectors( void );
     RealType G_KE( IndexType cell_K, IndexType edge_E );
-    std::string getFormattedTime( const float & time );
+
+    template< typename T >
+    std::string pad_number( const T & number );
 
 public:
 //    Solver( void );
