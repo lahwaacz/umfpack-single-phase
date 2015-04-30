@@ -29,9 +29,6 @@ private:
     RealType viscosity;
     Vector porosity;
     Vector F;
-    // boundary conditions
-    Vector qN;
-    Vector pD;
     // variables
     Vector pressure;
     Vector ptrace;
@@ -50,6 +47,9 @@ private:
     bool allocateVectors( void );
     bool init( void );
     RealType G_KE( IndexType cell_K, IndexType edge_E );
+    RealType barenblatt( const RealType & x, const RealType & time );
+    RealType get_dirichlet_value( const IndexType & indexEdge, const RealType & time );
+    RealType get_neumann_value( const IndexType & indexEdge, const RealType & time );
     bool update_auxiliary_vectors( const RealType & time, const RealType & tau );
     bool update_main_system( const RealType & time );
     bool update_p( void );

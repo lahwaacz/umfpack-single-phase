@@ -11,9 +11,10 @@ from scipy import interpolate
 
 width = 10
 height = 10
-cols = 100
-rows = 100
-filenames = sorted( glob.glob( "out/pressure-vect-gravity-%dx%d-*.dat" % (rows, cols) ) )
+cols = 20
+rows = 20
+#filenames = sorted( glob.glob( "out/pressure-vect-gravity-%dx%d-*.dat" % (rows, cols) ) )
+filenames = sorted( glob.glob( "out-eoc/umfpack-%dx%d-*.dat" % (rows, cols) ) )
 
 def load_values( fname ):
     # load vector, reshape to matrix form
@@ -34,12 +35,13 @@ def plot_mesh( fig, ax, fname ):
                       aspect=aspect )
 
     # NOTE: fixed colorbar limits so that all figures use the same scale
-    img.set_clim( vmin=1e5, vmax=1e5+1e3 )
+#    img.set_clim( vmin=1e5, vmax=1e5+1e3 )
 
     # plot colorbar
     divider = make_axes_locatable( ax )
     cax = divider.append_axes( "right", size="5%", pad=0.1, aspect=20*aspect )
-    colorbar = fig.colorbar( img, cax=cax, format="%.0f" )
+#    colorbar = fig.colorbar( img, cax=cax, format="%.0f" )
+    colorbar = fig.colorbar( img, cax=cax )
 
     # return reference to objects needed to update the image
     return img, colorbar

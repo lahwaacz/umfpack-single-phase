@@ -27,8 +27,6 @@ bool Solver::allocateVectors( void )
     // parameters
     status &= porosity.setSize( mesh.num_cells() );
     status &=        F.setSize( mesh.num_cells() );
-    status &=       qN.setSize( mesh.num_edges() );
-    status &=       pD.setSize( mesh.num_edges() );
 
     // main variables
     status &= pressure.setSize( mesh.num_cells() );
@@ -46,8 +44,8 @@ bool Solver::allocateVectors( void )
 
 bool Solver::init( void )
 {
-    area_width = 10;
-    area_height = 10;
+    area_width = 100;
+    area_height = 20;
     mesh.setup( area_width, area_height, mesh_rows, mesh_cols );
 
     if( ! allocateVectors() ) {
@@ -56,44 +54,27 @@ bool Solver::init( void )
     }
 
     // parameters
-    snapshot_period = 1.0;
-    initial_time = 0.0;
-    final_time = 30.0;
-    grav_y = -9.806;
-//    grav_y = 0.0;
-    const RealType M = 28.96e-3;
-    const RealType R = 8.3144621;
-    const RealType T = 300;
+    snapshot_period = 500.0;
+    initial_time = 1e4;
+    final_time = 1e5;
+    grav_y = 0.0;
+    const RealType M = 1.0;
+    const RealType R = 1.0;
+    const RealType T = 1.0;
     idealGasCoefficient = M / R / T;
-    permeability = 1e-10;
-    viscosity = 18.6e-6;
-    porosity.setAllElements( 0.4 );
+    permeability = 1.0;
+    viscosity = 0.5;
+    porosity.setAllElements( 1.0 );
     F.setAllElements( 0.0 );
 
-    // TODO: use sparse vectors
-    // boundary conditions
-    qN.setAllElements( 0.0 );
-    pD.setAllElements( 0.0 );
-    // gradient on Dirichlet boundary
-    IndexType col = 0;
-    for( IndexType i = mesh_cols * mesh_rows; i < mesh_cols * (mesh_rows + 1); i++ ) {
-        pD[ i ] = 1e5 + 1e3 / mesh_cols * (col++ + 1);
+    // initial conditions
+    for( IndexType indexCell = 0; indexCell < mesh.num_cells(); indexCell++ ) {
+        const IndexType i = indexCell % mesh_cols;
+        const RealType x = - area_width / 2.0 + (i + 0.5) * mesh.get_dx();
+        pressure[ indexCell ] = barenblatt( x, initial_time );
     }
 
-//    // constant pressure on left border
-//    for( IndexType i = (mesh_rows + 1) * mesh_cols; i < mesh.num_edges(); i++ ) {
-//        if( i % (mesh_cols + 1) == 0 )
-//            pD[ i ] = 1e5;
-//    }
-//    // constant (higher) pressure on right border
-//    for( IndexType i = (mesh_rows + 1) * mesh_cols; i < mesh.num_edges(); i++ ) {
-//        if( i % (mesh_cols + 1) == mesh_cols )
-//            pD[ i ] = 1.01e5;
-//    }
-
-    // initial conditions
-    pressure.setAllElements( 1e5 );
-    ptrace.setAllElements( 1e5 );
+    ptrace.setAllElements( 1.0 );
 
     dxy = mesh.get_dx() / mesh.get_dy();
     dyx = mesh.get_dy() / mesh.get_dx();
@@ -114,6 +95,28 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
 
     // top
     return -value;
+}
+
+RealType Solver::barenblatt( const RealType & x, const RealType & time )
+{
+    const IndexType m = 2;
+    const RealType k = 1.0 / (m + 1);
+    RealType B = 1 - k * (m - 1) / (2.0 * m) * x * x / pow( time, 2 * k );
+    if( B <= 0.0 )
+        return 0.0;
+    return pow( time, -k ) * pow( B, 1.0 / (m - 1) );
+}
+
+RealType Solver::get_dirichlet_value( const IndexType & indexEdge, const RealType & time )
+{
+    const IndexType i = indexEdge % (mesh_cols + 1);
+    const RealType x = - area_width / 2.0 + i * mesh.get_dx();
+    return barenblatt( x, initial_time + time );
+}
+
+RealType Solver::get_neumann_value( const IndexType & indexEdge, const RealType & time )
+{
+    return 0.0;
 }
 
 bool Solver::update_auxiliary_vectors( const RealType & time, const RealType & tau )
@@ -168,7 +171,7 @@ bool Solver::update_main_system( const RealType & time )
                         mainMatrix.setElement( edge_E, edge_F, value + A_KEF );
                     }
                     else {
-                        rhs[ edge_E ] -= A_KEF * pD[ edge_F ];
+                        rhs[ edge_E ] -= A_KEF * get_dirichlet_value( edge_F, time );
                     }
                     // right hand side
                     rhs[ edge_E ] += A_KEF * G_KE( cell_K, edge_F ) * pressure[ cell_K ];
@@ -181,11 +184,11 @@ bool Solver::update_main_system( const RealType & time )
         // Dirichlet boundary
         else {
             mainMatrix.setElement( edge_E, edge_E, 1.0 );
-            rhs[ edge_E ] = pD[ edge_E ];
+            rhs[ edge_E ] = get_dirichlet_value( edge_E, time );
         }
         // Neumann boundary
         if( mesh.is_neumann_boundary( edge_E ) ) {
-            rhs[ edge_E ] += qN[ edge_E ];
+            rhs[ edge_E ] += get_neumann_value( edge_E, time );
         }
     }
     return true;
