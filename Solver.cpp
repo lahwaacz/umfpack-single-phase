@@ -116,7 +116,7 @@ bool Solver::update_auxiliary_vectors( void )
         alpha[ cell_K ] = 0.0;
         for( int i = 0; i < 4; i++ ) {
             IndexType edge_E = mesh->edge_for_cell( cell_K, i );
-            RealType value = 6 * idealGasCoefficient * permeability / viscosity
+            RealType value = 2 * idealGasCoefficient * permeability / viscosity
                     * (( mesh->is_horizontal_edge(edge_E) ) ? dxy : dyx);
             beta.setElement( cell_K, edge_E, value );
             alpha[ cell_K ] += value;
