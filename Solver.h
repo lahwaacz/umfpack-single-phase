@@ -55,7 +55,7 @@ public:
     ~Solver( void );
 
     bool init( void );
-    bool update_auxiliary_vectors( void );
+    bool update_auxiliary_vectors( const float & time, const float & tau );
     bool update_main_system( void );
     bool update_p( void );
     bool run( void );

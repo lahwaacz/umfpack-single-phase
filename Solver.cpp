@@ -110,9 +110,17 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     return -value;
 }
 
-bool Solver::update_auxiliary_vectors( void )
+bool Solver::update_auxiliary_vectors( const float & time, const float & tau )
 {
-    // set auxiliary vectors
+    // depends on tau
+    for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
+        lambda[ cell_K ] = porosity[ cell_K ] * idealGasCoefficient * mesh->measure_cell( cell_K ) / tau;
+    }
+
+    // constant in time
+    if( time > initial_time )
+        return true;
+
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
         alpha[ cell_K ] = 0.0;
         for( int i = 0; i < 4; i++ ) {
@@ -122,8 +130,8 @@ bool Solver::update_auxiliary_vectors( void )
             beta.setElement( cell_K, edge_E, value );
             alpha[ cell_K ] += value;
         }
-        lambda[ cell_K ] = porosity[ cell_K ] * idealGasCoefficient * mesh->measure_cell( cell_K ) / tau;
     }
+
     return true;
 }
 
@@ -215,8 +223,6 @@ bool Solver::run( void )
     int snapshot_period_iter = snapshot_period / tau;
     string snapshot_prefix = string( "out/pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
-    update_auxiliary_vectors();
-
     // initialize
     IndexType step = 0;
     RealType time = initial_time;
@@ -226,6 +232,8 @@ bool Solver::run( void )
 
     while( time < final_time ) {
         cout << "Time: " << time << endl;
+
+        update_auxiliary_vectors( time, tau );
 
         // setSize() clears the matrix
         status = mainMatrix.setSize( mesh->num_edges(), mesh->num_edges() );
