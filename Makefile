@@ -1,17 +1,13 @@
 CXX := $(CXX) -std=c++11
 CC := $(CXX)
 
-base_CXXFLAGS = -Wall -Wextra -Woverloaded-virtual -pedantic -O3 -g -rdynamic
-base_LIBS = -lm -lumfpack
+CPPFLAGS += -MD -MP -D_XOPEN_SOURCE=500
+CXXFLAGS += -Wall -Wextra -Woverloaded-virtual -pedantic -O3 -g -rdynamic
+LDFLAGS = -lm -lumfpack
 
 #pkgs =
-#pkgs_CXXFLAGS = $(shell pkg-config --cflags $(pkgs))
-#pkgs_LIBS = $(shell pkg-config --libs $(pkgs))
-
-CPPFLAGS += -MD -MP -D_XOPEN_SOURCE=500
-CXXFLAGS := $(base_CXXFLAGS) $(pkgs_CXXFLAGS) $(CXXFLAGS)
-#LDFLAGS += -v
-LDLIBS := $(base_LIBS) $(pkgs_LIBS)
+#CXXFLAGS += $(shell pkg-config --cflags $(pkgs))
+#LDFLAGS += $(shell pkg-config --libs $(pkgs))
 
 SRC = main.cpp Array.cpp Vector.cpp Matrix.cpp DenseMatrix.cpp SparseMatrix.cpp SOR.cpp RectangularMesh.cpp Solver.cpp
 DIST_TARBALL = bak-$(shell git describe --always | sed 's|-|.|g').tar.gz
