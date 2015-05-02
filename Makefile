@@ -9,6 +9,13 @@ LDFLAGS = -lm -lumfpack
 #CXXFLAGS += $(shell pkg-config --cflags $(pkgs))
 #LDFLAGS += $(shell pkg-config --libs $(pkgs))
 
+TNL_VERSION=0.1
+TNL_INSTALL_DIR=${HOME}/local/lib
+TNL_INCLUDE_DIR=${HOME}/local/include/tnl-${TNL_VERSION}
+
+CXXFLAGS += -I$(TNL_INCLUDE_DIR)
+LDFLAGS += -L$(TNL_INSTALL_DIR) -ltnl-0.1
+
 SRC = main.cpp Array.cpp Vector.cpp Matrix.cpp DenseMatrix.cpp SparseMatrix.cpp SOR.cpp RectangularMesh.cpp Solver.cpp
 DIST_TARBALL = bak-$(shell git describe --always | sed 's|-|.|g').tar.gz
 

@@ -286,6 +286,9 @@ bool Solver::run( void )
     // save initial condition
     pressure.save( output_prefix + "-" + pad_number( step ) + ".dat" );
 
+    // save in TNL format for EOC calculation
+    pressure.save_tnl( output_prefix + "-" + pad_number( step ) + ".tnl" );
+
     while( step < final_step ) {
         RealType current_tau = fmin( snapshot_period, final_time - time );
 
@@ -298,6 +301,9 @@ bool Solver::run( void )
 
         // make snapshot
         pressure.save( output_prefix + "-" + pad_number( step ) + ".dat" );
+
+        // save in TNL format for EOC calculation
+        pressure.save_tnl( output_prefix + "-" + pad_number( step ) + ".tnl" );
     }
 
     return true;
