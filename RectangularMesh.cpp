@@ -3,9 +3,10 @@
 // cell numbering: by rows, left to right
 // edge numbering: by rows, first horizontal and then vertical
 
-RectangularMesh::RectangularMesh( double area_width, double area_height, int rows, int columns )
-    : _rows(rows), _cols(columns)
+void RectangularMesh::setup( double area_width, double area_height, int rows, int columns )
 {
+    _rows = rows;
+    _cols = columns;
     _delta_x = area_width / columns;
     _delta_y = area_height / rows;
 }

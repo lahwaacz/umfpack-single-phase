@@ -4,20 +4,22 @@
 
 #include "RectangularMesh.h"
 #include "Vector.h"
-#include "DenseMatrix.h"
 #include "SparseMatrix.h"
 
 class Solver
 {
 private:
-    std::string output_prefix;
-    RectangularMesh* mesh = nullptr;
-    // parameters
-    RealType area_width;
-    RealType area_height;
+    // parameters configurable from command line
     IndexType mesh_cols;
     IndexType mesh_rows;
     RealType tau;
+    int time_step_order;
+
+    std::string output_prefix;
+    RectangularMesh mesh;
+    // parameters
+    RealType area_width;
+    RealType area_height;
     RealType snapshot_period;
     RealType initial_time;
     RealType final_time;
@@ -57,8 +59,10 @@ private:
     std::string pad_number( const T & number );
 
 public:
-//    Solver( void );
-    ~Solver( void );
+    Solver( IndexType size_x,
+            IndexType size_y,
+            RealType time_step,
+            int time_step_order );
 
     bool run( void );
 };

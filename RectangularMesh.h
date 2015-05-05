@@ -12,7 +12,7 @@ private:
     double _delta_y = 0.0;
 
 public:
-    RectangularMesh( double area_width, double area_height, int rows, int columns );
+    void setup( double area_width, double area_height, int rows, int columns );
 
     virtual int num_edges( void ) const;
     virtual int num_cells( void ) const;
