@@ -45,7 +45,7 @@ bool Solver::allocateVectors( void )
 bool Solver::init( void )
 {
     area_width = 100;
-    area_height = 20;
+    area_height = 100;
     mesh.setup( area_width, area_height, mesh_rows, mesh_cols );
 
     if( ! allocateVectors() ) {
@@ -56,7 +56,7 @@ bool Solver::init( void )
     // parameters
     snapshot_period = 1e3;
     initial_time = 3e3;
-    final_time = 3e4;
+    final_time = 15e3;
     grav_y = 0.0;
     const RealType M = 1.0;
     const RealType R = 1.0;
@@ -229,8 +229,6 @@ bool Solver::solve( const RealType & time_start, const RealType & time_stop )
     while( time < time_stop ) {
         RealType current_tau = fmin( tau, time_stop - time );
 
-        cout << "Time: " << time << endl;
-
         // update auxiliary vectors
         update_auxiliary_vectors( time, current_tau );
 
@@ -291,6 +289,8 @@ bool Solver::run( void )
 
     while( step < final_step ) {
         RealType current_tau = fmin( snapshot_period, final_time - time );
+
+        cout << "Time: " << time << endl;
 
         status = solve( time, time + current_tau );
         if( ! status )
