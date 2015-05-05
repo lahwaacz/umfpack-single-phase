@@ -7,15 +7,12 @@
 
 using namespace std;
 
-int main( int argc, char** argv )
+bool report_peak_memory( void )
 {
-    Solver s;
-    bool status = s.run();
-
     ifstream meminfo("/proc/self/status");
     if (meminfo.fail()) {
         cerr << "error: unable to open /proc/self/status" << endl;
-        return EXIT_FAILURE;
+        return false;
     }
 
     string desc;
@@ -27,11 +24,23 @@ int main( int argc, char** argv )
         if( desc == "VmHWM:" ) {
             meminfo >> value;
             cout << "Peak memory usage: " << value / 1024 << " MiB" << endl;
+            return true;
         }
 
         // ignore the rest of irrelevant lines
         meminfo.ignore(numeric_limits<streamsize>::max(), '\n');
     }
+
+    return false;
+}
+
+int main( int argc, char** argv )
+{
+    Solver s;
+    bool status = s.run();
+
+    // print peak memory usage
+    status &= report_peak_memory();
 
     return !status;
 }
