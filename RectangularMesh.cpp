@@ -180,11 +180,13 @@ bool RectangularMesh::is_dirichlet_boundary( int edge ) const
 
 int RectangularMesh::num_neumann_edges( void ) const
 {
-    return 2 * _rows + _cols;
+//    return 2 * _rows + _cols;
+    return 2 * _cols;
 }
 
 int RectangularMesh::num_dirichlet_edges( void ) const
 {
-    return _cols;
+//    return _cols;
+    return 2 * _rows;
 }
 

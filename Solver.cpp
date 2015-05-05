@@ -54,9 +54,9 @@ bool Solver::init( void )
     }
 
     // parameters
-    snapshot_period = 500.0;
-    initial_time = 1e4;
-    final_time = 1e5;
+    snapshot_period = 1e3;
+    initial_time = 3e3;
+    final_time = 3e4;
     grav_y = 0.0;
     const RealType M = 1.0;
     const RealType R = 1.0;
@@ -99,7 +99,7 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
 
 RealType Solver::barenblatt( const RealType & x, const RealType & time )
 {
-    const IndexType m = 2;
+    const int m = 2;
     const RealType k = 1.0 / (m + 1);
     RealType B = 1 - k * (m - 1) / (2.0 * m) * x * x / pow( time, 2 * k );
     if( B <= 0.0 )
@@ -111,7 +111,7 @@ RealType Solver::get_dirichlet_value( const IndexType & indexEdge, const RealTyp
 {
     const IndexType i = indexEdge % (mesh_cols + 1);
     const RealType x = - area_width / 2.0 + i * mesh.get_dx();
-    return barenblatt( x, initial_time + time );
+    return barenblatt( x, time );
 }
 
 RealType Solver::get_neumann_value( const IndexType & indexEdge, const RealType & time )
