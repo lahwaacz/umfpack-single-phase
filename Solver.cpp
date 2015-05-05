@@ -1,6 +1,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <cmath>
+
 #include "Solver.h"
 
 using namespace std;
@@ -37,6 +39,8 @@ bool Solver::allocateVectors( void )
 
 bool Solver::init( void )
 {
+    output_prefix = "out/pressure-";
+
     area_width = 10;
     area_height = 10;
     mesh_cols = 100;
@@ -110,7 +114,7 @@ RealType Solver::G_KE( IndexType cell_K, IndexType edge_E )
     return -value;
 }
 
-bool Solver::update_auxiliary_vectors( const float & time, const float & tau )
+bool Solver::update_auxiliary_vectors( const RealType & time, const RealType & tau )
 {
     // depends on tau
     for( IndexType cell_K = 0; cell_K < mesh->num_cells(); cell_K++ ) {
@@ -135,7 +139,7 @@ bool Solver::update_auxiliary_vectors( const float & time, const float & tau )
     return true;
 }
 
-bool Solver::update_main_system( void )
+bool Solver::update_main_system( const RealType & time )
 {
     // set main system elements
     for( IndexType edge_E = 0; edge_E < mesh->num_edges(); edge_E++ ) {
@@ -212,6 +216,52 @@ string Solver::pad_number( const T & number )
     return ss.str();
 }
 
+bool Solver::solve( const RealType & time_start, const RealType & time_stop )
+{
+    RealType time = time_start;
+    bool status = true;
+
+    while( time < time_stop ) {
+        RealType current_tau = fmin( tau, time_stop - time );
+
+        cout << "Time: " << time << endl;
+
+        // update auxiliary vectors
+        update_auxiliary_vectors( time, current_tau );
+
+        // setSize() clears the matrix
+        status = mainMatrix.setSize( mesh->num_edges(), mesh->num_edges() );
+        if( ! status ) {
+            cerr << "Failed to set size of the main matrix." << endl;
+            return false;
+        }
+
+        // reserve space to avoid reallocation
+        status = mainMatrix.reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
+        if( ! status ) {
+            cerr << "Failed to reserve space for non-zero elements in the main matrix." << endl;
+            return false;
+        }
+
+        status = update_main_system( time + current_tau );
+        if( ! status ) {
+            cerr << "Failed to update the main system." << endl;
+            return false;
+        }
+
+        status = mainMatrix.linear_solve( ptrace, rhs );
+        if( ! status ) {
+            cerr << "Failed to solve the main system." << endl;
+            return false;
+        }
+        update_p();
+
+        time += current_tau;
+    }
+
+    return true;
+}
+
 bool Solver::run( void )
 {
     bool status = init();
@@ -220,61 +270,31 @@ bool Solver::run( void )
         return false;
     }
 
-    int snapshot_period_iter = snapshot_period / tau;
-    string snapshot_prefix = string( "out/pressure-vect-gravity-" ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
-
+    // update tau according to mesh refinement
+    tau = tau * fmin( mesh->get_dx(), mesh->get_dy() );
     // initialize
-    IndexType step = 0;
     RealType time = initial_time;
+    IndexType step = 0;
+    const IndexType final_step = ceil( (final_time - initial_time) / snapshot_period );
+    const string snapshot_prefix = string( output_prefix ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
-    // print initial condition
+    // save initial condition
     pressure.save( snapshot_prefix + pad_number( step ) + ".dat" );
 
-    while( time < final_time ) {
-        cout << "Time: " << time << endl;
+    while( step < final_step ) {
+        RealType current_tau = fmin( snapshot_period, final_time - time );
 
-        update_auxiliary_vectors( time, tau );
+        status = solve( time, time + current_tau );
+        if( ! status )
+            return false;
 
-        // setSize() clears the matrix
-        status = mainMatrix.setSize( mesh->num_edges(), mesh->num_edges() );
-        if( ! status ) {
-            cerr << "Failed to set size of the main matrix." << endl;
-            break;
-        }
-
-        // reserve space to avoid reallocation
-        status = mainMatrix.reserve( 7 * ( mesh->num_edges() - mesh->num_neumann_edges() - mesh->num_dirichlet_edges() ) + 4 * mesh->num_neumann_edges() + mesh->num_dirichlet_edges() );
-        if( ! status ) {
-            cerr << "Failed to reserve space for non-zero elements in the main matrix." << endl;
-            break;
-        }
-
-        status = update_main_system();
-        if( ! status ) {
-            cerr << "Failed to update the main system." << endl;
-            break;
-        }
-
-        status = mainMatrix.linear_solve( ptrace, rhs );
-        if( ! status ) {
-            cerr << "Failed to solve the main system." << endl;
-            break;
-        }
-        update_p();
-
-        // go to next time step
         step++;
-        time += tau;
+        time += current_tau;
 
-        // make snapshot, starting with initial conditions
-        if( step % snapshot_period_iter == 0 ) {
-            pressure.save( snapshot_prefix + pad_number( step / snapshot_period_iter ) + ".dat" );
-        }
-
+        // make snapshot
+        pressure.save( snapshot_prefix + pad_number( step ) + ".dat" );
     }
 
-    if( status ) {
-    }
-    return status;
+    return true;
 }
 
