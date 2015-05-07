@@ -13,7 +13,7 @@ private:
     IndexType mesh_cols;
     IndexType mesh_rows;
     RealType tau;
-    int time_step_order;
+    RealType time_step_order;
 
     std::string output_prefix;
     RectangularMesh mesh;
@@ -62,7 +62,7 @@ public:
     Solver( IndexType size_x,
             IndexType size_y,
             RealType time_step,
-            int time_step_order );
+            RealType time_step_order );
 
     bool run( void );
 };

@@ -15,7 +15,7 @@ bool parse_options( int argc,
                     IndexType & size_x,
                     IndexType & size_y,
                     RealType & time_step,
-                    unsigned & time_step_order )
+                    RealType & time_step_order )
 {
     int c;
     while (1) {
@@ -114,7 +114,7 @@ int main( int argc, char** argv )
     IndexType size_x = 0;
     IndexType size_y = 0;
     RealType time_step = 0.0;
-    unsigned time_step_order = 0;
+    RealType time_step_order = 0;
 
     status &= parse_options( argc, argv,
                              size_x, size_y, time_step, time_step_order );

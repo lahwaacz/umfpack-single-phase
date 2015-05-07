@@ -11,7 +11,7 @@ using namespace std;
 Solver::Solver( IndexType size_x,
                 IndexType size_y,
                 RealType time_step,
-                int time_step_order )
+                RealType time_step_order )
     : mesh_cols( size_x ),
       mesh_rows( size_y ),
       tau( time_step ),
