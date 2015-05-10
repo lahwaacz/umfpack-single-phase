@@ -8,8 +8,8 @@ class RectangularMesh
 private:
     int _rows = 0;
     int _cols = 0;
-    double _delta_x = 0.0;
-    double _delta_y = 0.0;
+    double _hx = 0.0;
+    double _hy = 0.0;
 
 public:
     void setup( double area_width, double area_height, int rows, int columns );
@@ -25,11 +25,11 @@ public:
     virtual int cell_for_edge( int edge, int cellOrder ) const;
     int get_edge_order( int cell, int edge ) const;
 
-    virtual double measure_cell( int cell ) const;
-    virtual double measure_edge( int edge ) const;
+    virtual double cell_volume( int cell ) const;
+    virtual double edge_length( int edge ) const;
 
-    double get_dx( void ) const { return _delta_x; };
-    double get_dy( void ) const { return _delta_y; };
+    double get_hx( void ) const { return _hx; };
+    double get_hy( void ) const { return _hy; };
 
     bool is_horizontal_edge( int edge ) const;
     bool is_vertical_edge( int edge ) const;

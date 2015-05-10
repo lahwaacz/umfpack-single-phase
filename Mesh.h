@@ -15,7 +15,7 @@ public:
     virtual int edge_for_cell( int cell, int edgeOrder ) const = 0;
     virtual int cell_for_edge( int edge, int cellOrder ) const = 0;
 
-    virtual double measure_cell( int cell ) const = 0;
-    virtual double measure_edge( int edge ) const = 0;
+    virtual double cell_volume( int cell ) const = 0;
+    virtual double edge_length( int edge ) const = 0;
 };
 

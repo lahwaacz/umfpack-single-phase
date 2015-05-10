@@ -7,8 +7,8 @@ void RectangularMesh::setup( double area_width, double area_height, int rows, in
 {
     _rows = rows;
     _cols = columns;
-    _delta_x = area_width / columns;
-    _delta_y = area_height / rows;
+    _hx = area_width / columns;
+    _hy = area_height / rows;
 }
 
 int RectangularMesh::num_edges( void ) const
@@ -129,16 +129,16 @@ int RectangularMesh::get_edge_order( int cell, int edge ) const
     return -1;
 }
 
-double RectangularMesh::measure_cell( int cell ) const
+double RectangularMesh::cell_volume( int cell ) const
 {
-    return _delta_x * _delta_y;
+    return _hx * _hy;
 }
 
-double RectangularMesh::measure_edge( int edge ) const
+double RectangularMesh::edge_length( int edge ) const
 {
     if( is_horizontal_edge( edge ) )
-        return _delta_x;
-    return _delta_y;
+        return _hx;
+    return _hy;
 }
 
 bool RectangularMesh::is_horizontal_edge( int edge ) const

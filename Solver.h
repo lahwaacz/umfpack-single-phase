@@ -25,8 +25,8 @@ private:
     RealType final_time;
     RealType grav_y;
     RealType idealGasCoefficient;
-    RealType permeability;
     RealType viscosity;
+    Vector permeability;
     Vector porosity;
     Vector F;
     // boundary conditions
@@ -43,16 +43,16 @@ private:
     SparseMatrix beta;
     Vector lambda;
 
-    RealType dxy;
-    RealType dyx;
+    RealType hxy;
+    RealType hyx;
 
     // auxiliary methods
     bool allocateVectors( void );
     bool init( void );
-    RealType G_KE( IndexType cell_K, IndexType edge_E );
+    RealType G_KE( IndexType cell, IndexType edge );
     bool update_auxiliary_vectors( const RealType & time, const RealType & tau );
     bool update_main_system( const RealType & time );
-    bool update_p( void );
+    bool update_pressure( void );
     bool solve( const RealType & time_start, const RealType & time_stop );
 
     template< typename T >
