@@ -17,6 +17,9 @@ export
 all: main
 
 main: $(SRC:%.cpp=%.o)
+# override implicit linking rule and put LDFLAGS at the end
+# (workaround for gcc 4.8.2 in ubuntu 14.04 on romanne)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 tests: main force_look
 	$(MAKE) $(MFLAGS) --directory=tests
