@@ -8,11 +8,13 @@
 using namespace std;
 
 
-Solver::Solver( IndexType size_x,
+Solver::Solver( string output_prefix,
+                IndexType size_x,
                 IndexType size_y,
                 RealType time_step,
                 RealType time_step_order )
-    : mesh_cols( size_x ),
+    : output_prefix( output_prefix ),
+      mesh_cols( size_x ),
       mesh_rows( size_y ),
       tau( time_step ),
       time_step_order( time_step_order )
@@ -44,8 +46,6 @@ bool Solver::allocateVectors( void )
 
 bool Solver::init( void )
 {
-    output_prefix = "out/pressure-";
-
     area_width = 10;
     area_height = 10;
     mesh.setup( area_width, area_height, mesh_rows, mesh_cols );
@@ -279,10 +279,9 @@ bool Solver::run( void )
     RealType time = initial_time;
     IndexType step = 0;
     const IndexType final_step = ceil( (final_time - initial_time) / snapshot_period );
-    const string snapshot_prefix = string( output_prefix ) + to_string( mesh_rows ) + "x" + to_string( mesh_cols ) + "-";
 
     // save initial condition
-    pressure.save( snapshot_prefix + pad_number( step ) + ".dat" );
+    pressure.save( output_prefix + "-" + pad_number( step ) + ".dat" );
 
     while( step < final_step ) {
         RealType current_tau = fmin( snapshot_period, final_time - time );
@@ -295,7 +294,7 @@ bool Solver::run( void )
         time += current_tau;
 
         // make snapshot
-        pressure.save( snapshot_prefix + pad_number( step ) + ".dat" );
+        pressure.save( output_prefix + "-" + pad_number( step ) + ".dat" );
     }
 
     return true;

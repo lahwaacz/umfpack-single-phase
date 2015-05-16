@@ -10,12 +10,12 @@ class Solver
 {
 private:
     // parameters configurable from command line
+    std::string output_prefix;
     IndexType mesh_cols;
     IndexType mesh_rows;
     RealType tau;
     RealType time_step_order;
 
-    std::string output_prefix;
     RectangularMesh mesh;
     // parameters
     RealType area_width;
@@ -59,7 +59,8 @@ private:
     std::string pad_number( const T & number );
 
 public:
-    Solver( IndexType size_x,
+    Solver( std::string output_prefix,
+            IndexType size_x,
             IndexType size_y,
             RealType time_step,
             RealType time_step_order );

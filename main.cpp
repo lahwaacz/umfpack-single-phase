@@ -12,6 +12,7 @@ using namespace std;
 
 bool parse_options( int argc,
                     char** argv,
+                    string & output_prefix,
                     IndexType & size_x,
                     IndexType & size_y,
                     RealType & time_step,
@@ -20,9 +21,10 @@ bool parse_options( int argc,
     int c;
     while (1) {
         static struct option long_options[] = {
-            { "size-x", required_argument, 0, 'x' },
-            { "size-y", required_argument, 0, 'y' },
-            { "time-step", required_argument, 0, 't' },
+            { "output-prefix",   required_argument, 0, 'p' },
+            { "size-x",          required_argument, 0, 'x' },
+            { "size-y",          required_argument, 0, 'y' },
+            { "time-step",       required_argument, 0, 't' },
             { "time-step-order", required_argument, 0, 'o' },
             { 0, 0, 0, 0 }
         };
@@ -34,6 +36,11 @@ bool parse_options( int argc,
             break;
 
         switch (c) {
+            case 'p':
+            {
+                stringstream ss(optarg);
+                ss >> output_prefix;
+            }
             case 'x':
             {
                 stringstream ss(optarg);
@@ -66,6 +73,10 @@ bool parse_options( int argc,
         }
     }
 
+    if( output_prefix == "" ) {
+        cerr << "output-prefix must be non-empty string" << endl;
+        return false;
+    }
     if( size_x <= 0 ) {
         cerr << "size-x must be positive integer" << endl;
         return false;
@@ -111,17 +122,19 @@ bool report_peak_memory( void )
 int main( int argc, char** argv )
 {
     bool status = true;
+    string output_prefix;
     IndexType size_x = 0;
     IndexType size_y = 0;
     RealType time_step = 0.0;
     RealType time_step_order = 0;
 
     status &= parse_options( argc, argv,
-                             size_x, size_y, time_step, time_step_order );
+                             output_prefix, size_x, size_y, time_step, time_step_order );
     if( ! status ) {
         cerr << endl;
         cerr << "Usage: " << argv[ 0 ] << " options..." << endl;
         cerr << "  where the options are:" << endl;
+        cerr << "    --output-prefix <string>   the prefix used for output snapshots (required)" << endl;
         cerr << "    --size-x <int>             mesh size in direction x (required)" << endl;
         cerr << "    --size-y <int>             mesh size in direction y (required)" << endl;
         cerr << "    --time-step <double>       initial time step (required)" << endl;
@@ -130,12 +143,13 @@ int main( int argc, char** argv )
     }
 
     cout << "Configured parameters:" << endl;
+    cout << "  output-prefix = " << output_prefix << endl;
     cout << "  size-x = " << size_x << endl;
     cout << "  size-y = " << size_y << endl;
     cout << "  time-step = " << time_step << endl;
     cout << "  time-step-order = " << time_step_order << endl;
 
-    Solver s( size_x, size_y, time_step, time_step_order );
+    Solver s( output_prefix, size_x, size_y, time_step, time_step_order );
     status &= s.run();
 
     // print peak memory usage
