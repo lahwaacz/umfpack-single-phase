@@ -4,10 +4,11 @@
 main
 .session.vim
 
-# saved matrix/vector data
+# generated data
+/out*
 *.dat
-
-# generated images
+*.gplt
+*.tnl
 *.png
 
 # valgrind tools
